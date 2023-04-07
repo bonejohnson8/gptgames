@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Arkanoid</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #222;
+            font-family: Arial, sans-serif;
+        }
+        #gameContainer {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        #gameCanvas {
+            border: 2px solid #000;
+            border-radius: 5px;
+        }
+        #controls {
+            margin-top: 10px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 15px;
+            margin-right: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            background-color: #0095DD;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0077AA;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="800"></canvas>
+        <div id="controls">
+            <button id="startBtn">Start</button>
+            <button id="pauseBtn">Pause</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game variables
+        const paddleWidth = 75;
+        const paddleHeight = 10;
+        const paddleXStart = (canvas.width - paddleWidth) / 2;
+        const ballRadius = 10;
+        const tileRows = 5;
+        const tileCols = 11;
+        const tilePadding = 5;
+        const tileOffsetTop = 60;
+        const tileOffsetLeft = 30;
+        const tileImage = new Image();
+        tileImage.src = 'ski.png';
+
+        let tileWidth;
+        let tileHeight;
+        let paddleX = paddleXStart;
+        let ballX = canvas.width / 2;
+        let ballY = canvas.height - 100;
+        let dx = 2;
+        let dy = -2;
+        let gameInterval;
+        let gameStarted = false;
+
+        // Tiles array
+        const tiles = [];
+        for (let c = 0; c < tileCols; c++) {
+            tiles[c] = [];
+            for (let r = 0; r < tileRows; r++) {
+                tiles[c][r] = { x: 0, y: 0, status: 1 };
+            }
+        }
+
+        // Particle explosion effect
+        const particles = [];
+        const particleCount = 20;
+        const particleSpeed = 2;
+        const particleSize = 2;
+
+        function createExplosion(x, y) {
+            for (let i = 0; i < particleCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * particleSpeed;
+                particles.push({
+                    x: x,
+y: y,
+dx: Math.cos(angle) * speed,
+dy: Math.sin(angle) * speed,
+radius: particleSize,
+life: 1,
+});
+}
+}
+    function updateParticles() {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.dx;
+            p.y += p.dy;
+            p.life -= 0.01;
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+            }
+        }
+    }
+
+    function drawParticles() {
+        ctx.fillStyle = '#ff0000';
+        for (const p of particles) {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.globalAlpha = p.life;
+            ctx.fill();
+        }
+        ctx.globalAlpha = 1; // Reset global alpha
+    }
+
+    // Load image and get dimensions
+    tileImage.onload = function() {
+        tileWidth = tileImage.width;
+        tileHeight = tileImage.height;
+        draw();
+    };
+
+    // Event listeners
+    document.addEventListener('keydown', keyDownHandler);
+    document.addEventListener('mousemove', mouseMoveHandler);
+    document.getElementById('startBtn').addEventListener('click', startGame);
+    document.getElementById('pauseBtn').addEventListener('click', pauseGame);
+    document.getElementById('resetBtn').addEventListener('click', resetGame);
+
+    function keyDownHandler(e) {
+        if (e.key === ' ') { // Spacebar key
+            startGame();
+        }
+    }
+
+    function mouseMoveHandler(e) {
+        const relativeX = e.clientX - canvas.offsetLeft;
+        if (relativeX > 0 && relativeX < canvas.width) {
+            paddleX = relativeX - paddleWidth / 2;
+        }
+    }
+
+    function startGame() {
+        if (!gameStarted) {
+            gameStarted = true;
+            gameInterval = setInterval(draw, 10);
+        }
+    }
+
+    function pauseGame() {
+        clearInterval(gameInterval);
+        gameStarted = false;
+    }
+
+    function resetGame() {
+        pauseGame();
+        ballX = canvas.width / 2;
+        ballY = canvas.height - 100;
+        dx = 2;
+        dy = -2;
+        paddleX = paddleXStart;
+        for (let c = 0; c < tileCols; c++) {
+            for (let r = 0; r < tileRows; r++) {
+                tiles[c][r].status = 1;
+            }
+        }
+        particles.length = 0; // Clear particles
+        gameStarted = false;
+        draw();
+    }
+
+    function collisionDetection() {
+        for (let c = 0; c < tileCols; c++) {
+            for (let r = 0; r < tileRows; r++) {
+                const tile = tiles[c][r];
+                if (tile.status === 1) {
+                    if (ballX > tile.x && ballX < tile.x + tileWidth && ballY > tile.y && ballY < tile.y + tileHeight) {
+                        dy = -dy;
+                        tile.status = 0;
+                        createExplosion(ballX, ballY); // Create explosion effect
+                    }
+                }
+            }
+        }
+    }
+
+    function drawBall() {
+        ctx.beginPath();
+        ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#0095DD';
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    function drawPaddle() {
+        ctx.beginPath();
+        ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+ctx.fillStyle = '#0095DD';
+ctx.fill();
+ctx.closePath();
+}
+    function drawTiles() {
+        if (!tileWidth || !tileHeight) return; // Image not loaded yet
+        for (let c = 0; c < tileCols; c++) {
+            for (let r = 0; r < tileRows; r++) {
+                if (tiles[c][r].status === 1) {
+                    const tileX = (c * (tileWidth + tilePadding)) + tileOffsetLeft;
+                    const tileY = (r * (tileHeight + tilePadding)) + tileOffsetTop;
+                    tiles[c][r].x = tileX;
+                    tiles[c][r].y = tileY;
+                    ctx.drawImage(tileImage, tileX, tileY, tileWidth, tileHeight);
+                }
+            }
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawTiles();
+        drawBall();
+        drawPaddle();
+        collisionDetection();
+        updateParticles(); // Update particles
+        drawParticles(); // Draw particles
+
+        // Ball-wall collision detection
+        if (ballX + dx < ballRadius || ballX + dx > canvas.width - ballRadius) {
+            dx = -dx;
+        }
+        if (ballY + dy < ballRadius) {
+            dy = -dy;
+        } else if (ballY + dy > canvas.height - ballRadius) {
+            if (ballX > paddleX && ballX < paddleX + paddleWidth) {
+                dy = -dy;
+            } else {
+                // Game over
+                resetGame();
+            }
+        }
+
+        ballX += dx;
+        ballY += dy;
+    }
+
+    draw();
+</script>
+</body>
+</html>
+
+

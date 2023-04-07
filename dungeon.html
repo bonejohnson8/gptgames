@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Legend of the Red Dragon (Simplified)</title>
+  <style>
+    body {
+      font-family: monospace;
+      background-color: black;
+      color: lime;
+    }
+    #game {
+      max-width: 600px;
+      margin: auto;
+    }
+    #output {
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <h1>Legend of the Red Dragon (Simplified)</h1>
+    <div id="output"></div>
+    <button id="startBtn" onclick="startGame()">Start Game</button>
+  </div>
+
+  <script>
+    let playerName = '';
+    let playerHealth = 20;
+    let playerGold = 0;
+    let playerXP = 0;
+    let playerLevel = 1;
+    let enemyHealth = 10;
+    let isGameOver = false;
+    let inventory = {
+      healingPotion: 0
+    };
+
+    function getNextLevelXP() {
+      return playerLevel * 10;
+    }
+
+    function checkLevelUp() {
+      if (playerXP >= getNextLevelXP()) {
+        playerLevel += 1;
+        playerHealth = 20 + playerLevel * 5;
+        output(`Congratulations, ${playerName}! You have reached Level ${playerLevel}.`);
+        output(`Your maximum health is now ${playerHealth}.`);
+      }
+    }
+
+    function startGame() {
+      document.getElementById('startBtn').style.display = 'none';
+      playerName = prompt('Enter your character name:');
+      output(`Welcome, ${playerName}! You find yourself in the land of Mysteria, a realm filled with adventure and peril.`);
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Legend of the Red Dragon (Simplified)</title>
+  <style>
+    body {
+      font-family: monospace;
+      background-color: black;
+      color: lime;
+    }
+    #game {
+      max-width: 600px;
+      margin: auto;
+    }
+    #output {
+      white-space: pre-wrap;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <h1>Legend of the Red Dragon (Simplified)</h1>
+    <div id="output"></div>
+    <button id="startBtn" onclick="startGame()">Start Game</button>
+    <div id="mainMenu" class="hidden">
+      <button onclick="exploreForest()">[1] Explore the forest</button>
+      <button onclick="visitInn()">[2] Visit the inn (heal)</button>
+      <button onclick="useHealingPotion()">[3] Use Healing Potion</button>
+    </div>
+    <div id="combatMenu" class="hidden">
+      <button onclick="attack()">[1] Attack</button>
+      <button onclick="runAway()">[2] Run away</button>
+    </div>
+  </div>
+
+  <script>
+    let playerName = '';
+    let playerHealth = 20;
+    let playerGold = 0;
+    let playerXP = 0;
+    let playerLevel = 1;
+    let enemyHealth = 10;
+    let isGameOver = false;
+    let inventory = {
+      healingPotion: 0
+    };
+
+    function getNextLevelXP() {
+      return playerLevel * 10;
+    }
+
+    function checkLevelUp() {
+      if (playerXP >= getNextLevelXP()) {
+        playerLevel += 1;
+        playerHealth = 20 + playerLevel * 5;
+        output(`Congratulations, ${playerName}! You have reached Level ${playerLevel}.`);
+        output(`Your maximum health is now ${playerHealth}.`);
+      }
+    }
+
+    function startGame() {
+      playerName = prompt('Enter your character name:');
+      output(`Welcome, ${playerName}! You find yourself in the land of Mysteria, a realm filled with adventure and peril.`);
+      output('A dense forest lies before you, and rumors speak of a fierce creature that lurks within.');
+      output('Do you have what it takes to survive the challenges ahead?');
+      showMainMenu();
+    }
+
+    function showMainMenu() {
+      if (isGameOver) return;
+      document.getElementById('startBtn').classList.add('hidden');
+      document.getElementById('mainMenu').classList.remove('hidden');
+    }
+
+    function hideMainMenu() {
+      document.getElementById('mainMenu').classList.add('hidden');
+    }
+
+    function exploreForest() {
+      hideMainMenu();
+      output('\nYou venture into the shadowy depths of the forest...');
+      const randomNumber = Math.random();
+      if (randomNumber < 0.4) {
+        output('You hear rustling in the underbrush, and a creature emerges to challenge you!');
+        showCombatMenu();
+      } else if (randomNumber < 0.7) {
+        output('You stumbleupon an abandoned campsite with scattered belongings.');
+const goldFound = Math.floor(Math.random() * 5) + 1;
+playerGold += goldFound;
+output(You find ${goldFound} gold among the debris.);
+output(You now have ${playerGold} gold.);
+showMainMenu();
+} else {
+output('You find yourself alone in a tranquil glade, the sounds of the forest surrounding you.');
+showMainMenu();
+}
+function showCombatMenu() {
+  document.getElementById('combatMenu').classList.remove('hidden');
+}
+
+function hideCombatMenu() {
+  document.getElementById('combatMenu').classList.add('hidden');
+}
+
+function attack() {
+  const playerDamage = Math.floor(Math.random() * (5 + playerLevel)) + 1;
+  enemyHealth -= playerDamage;
+  output(`You strike the creature with your weapon, dealing ${playerDamage} damage!`);
+  if (enemyHealth <= 0) {
+    output('You have vanquished the creature!');
+    enemyHealth = 10;
+    playerXP += 5;
+    checkLevelUp();
+    if (Math.random() < 0.3) {
+      inventory.healingPotion += 1;
+      output('You found a Healing Potion!');
+    }
+    hideCombatMenu();
+    showMainMenu();
+  } else {
+    const creatureDamage = Math.floor(Math.random() * 3) + 1;
+    playerHealth -= creatureDamage;
+    output(`The creature retaliates, inflicting ${creatureDamage} damage upon you!`);
+    if (playerHealth <= 0) {
+      output('You have been defeated by the creature...');
+      output('Your adventure in Mysteria has come to a tragic end.');
+      isGameOver = true;
+      hideCombatMenu();
+      document.getElementById('startBtn').classList.remove('hidden');
+    }
+  }
+}
+
+function runAway() {
+  output('You flee from the creature, escaping deeper into the forest.');
+  hideCombatMenu();
+  showMainMenu();
+}
+
+function visitInn() {
+  output('\nYou find your way to a cozy inn at the edge of the forest.');
+  output('The innkeeper greets you with a warm smile and offers you a room to rest.');
+  playerHealth = 20 + playerLevel * 5;
+  output(`After a night of peaceful rest, your health is fully restored to ${playerHealth}.`);
+  showMainMenu();
+}
+
+function useHealingPotion() {
+  if (inventory.healingPotion > 0) {
+    inventory.healingPotion -= 1;
+    playerHealth = Math.min(playerHealth + 10, 20 + playerLevel * 5);
+    output('You used a Healing Potion and recovered some health.');
+    output(`Your current health is ${playerHealth}.`);
+  } else {
+    output('You have no Healing Potions left.');
+  }
+  showMainMenu();
+}
+
+function output(text) {
+  const p = document.createElement('p');
+  p.textContent = text;
+  document.getElementById('output').appendChild(p);
+}  
+</script>
+</body>
+</html>

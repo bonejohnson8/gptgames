@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BONEPAINT</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #1a1a1a;
+      margin: 0;
+      padding: 0;
+    }
+    #app {
+      background-color: #2e2e2e;
+      width: 820px;
+      margin: 20px auto;
+      padding: 10px;
+      border: 1px solid #5a5a5a;
+    }
+    #title {
+      font-size: 24px;
+      color: #d6b5f2; /* Necromancer purple */
+      margin: 10px;
+      text-align: center;
+    }
+    #toolbar {
+      background-color: #3c3c3c;
+      padding: 5px;
+      display: flex;
+      justify-content: center;
+    }
+    .tool-btn {
+      margin: 5px;
+      padding: 5px 10px;
+      border: none;
+      background-color: #5a5a5a;
+      color: #d6b5f2; /* Necromancer purple */
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .tool-btn:hover {
+      background-color: #6f6f6f;
+    }
+    #canvasContainer {
+      position: relative;
+      display: inline-block;
+      margin-top: 10px;
+    }
+    #canvas {
+      border: 1px solid #5a5a5a;
+      cursor: crosshair;
+    }
+    #tempCanvas {
+      position: absolute;
+      display: none;
+    }
+    #selectionRect {
+      position: absolute;
+      border: 1px dashed #d6b5f2; /* Necromancer purple */
+      display: none;
+    }
+    .hidden {
+      display: none;
+    }
+    #textBox {
+      position: absolute;
+      border: 1px dashed #d6b5f2; /* Necromancer purple */
+      display: none;
+      padding: 4px;
+      font-family: Impact;
+      font-size: 30px;
+      color: #d6b5f2; /* Necromancer purple */
+      background: transparent;
+      outline: none;
+      white-space: pre;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1 id="title">BONEPAINT</h1>
+    <div id="toolbar">
+      <button class="tool-btn" id="brushBtn">Brush</button>
+      <button class="tool-btn" id="eraserBtn">Eraser</button>
+      <button class="tool-btn" id="paintBucketBtn">Paint Bucket</button>
+      <button class="tool-btn" id="textBtn">Text</button>
+      <button class="tool-btn" id="selectBtn">Select</button>
+      <button class="tool-btn" id="cutBtn">Cut</button>
+      <button class="tool-btn" id="copyBtn">Copy</button>
+      <button class="tool-btn" id="pasteBtn">Paste</button>
+      <label for="colorPicker" style="color: #d6b5f2;">Color:</label>
+      <input type="color" id="colorPicker" value="#d6b5f2">
+      <label for="brushSize" style="color: #d6b5f2;">Brush Size:</label>
+      <input type="range" id="brushSize" min="1" max="100" value="5">
+    </div>
+    <div id="canvasContainer">
+      <canvas id="canvas" width="800" height="400"></canvas>
+      <canvas id="tempCanvas" width="800" height="400"></canvas>
+      <div id="selectionRect"></div>
+      <div id="textBox" contenteditable="true"></div>
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const tempCanvas = document.getElementById('tempCanvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    const textBox = document.getElementById('textBox');
+    const selectionRect = document.getElementById('selectionRect');
+    let isDrawing = false;
+    let activeTool = null;
+    let startX, startY, endX, endY;
+    let selectedImageData = null;
+// Define tools
+const tools = {
+  brush: 'brush',
+  eraser: 'eraser',
+  paintBucket: 'paintBucket',
+  text: 'text',
+  select: 'select',
+  cut: 'cut',
+  copy: 'copy',
+  paste: 'paste'
+};
+
+// Event listeners for buttons
+document.getElementById('brushBtn').addEventListener('click', () => {
+  setActiveTool(tools.brush);
+  ctx.globalCompositeOperation = 'source-over';
+  textBox.classList.add('hidden');
+});
+
+document.getElementById('eraserBtn').addEventListener('click', () => {
+  setActiveTool(tools.eraser);
+  ctx.globalCompositeOperation = 'destination-out';
+  textBox.classList.add('hidden');
+});
+
+document.getElementById('paintBucketBtn').addEventListener('click', () => {
+  setActiveTool(tools.paintBucket);
+  textBox.classList.add('hidden');
+});
+
+document.getElementById('textBtn').addEventListener('click', () => {
+  setActiveTool(tools.text);
+  textBox.classList.remove('hidden');
+  textBox.focus();
+});
+
+document.getElementById('selectBtn').addEventListener('click', () => {
+  setActiveTool(tools.select);
+  textBox.classList.add('hidden');
+});
+
+document.getElementById('cutBtn').addEventListener('click', () => {
+  cutSelection();
+});
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  copySelection();
+});
+
+document.getElementById('pasteBtn').addEventListener('click', () => {
+  pasteSelection();
+});
+
+document.getElementById('colorPicker').addEventListener('change', (e) => {
+  ctx.strokeStyle = e.target.value;
+  ctx.fillStyle = e.target.value;
+  textBox.style.color = e.target.value;
+});
+
+document.getElementById('brushSize').addEventListener('change', (e) => {
+  ctx.lineWidth = e.target.value;
+});
+
+// Set active tool
+function setActiveTool(tool) {
+  activeTool = tool;
+  resetTools();
+}
+
+function resetTools() {
+  // Hide text box and selection rectangle
+  textBox.classList.add('hidden');
+  textBox.innerText = '';
+  selectionRect.style.display = 'none';
+}
+
+// Handle both mouse and touch events
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mousemove', draw);
+canvas.addEventListener('mouseup', stopDrawing);
+canvas.addEventListener('touchstart', startDrawing);
+canvas.addEventListener('touchmove', draw);
+canvas.addEventListener('touchend', stopDrawing);
+
+function startDrawing(event) {
+  // Handle both mouse and touch coordinates
+  const coords = getEventCoordinates(event);
+  startX = coords.x;
+  startY = coords.y;
+  if (activeTool === tools.paintBucket) {
+    fillBucket(coords.x, coords.y, ctx.strokeStyle);
+  } else if (activeTool === tools.select) {
+    updateSelectionRect(startX, startY, 0, 0);
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(coords.x, coords.y);
+  }
+  isDrawing = true;
+}
+
+function draw(event) {
+  if (!isDrawing) return;
+  const coords = getEventCoordinates(event);
+  if (activeTool === tools.brush || activeTool === tools.eraser) {
+    ctx.lineTo(coords.x, coords.y);
+    ctx.stroke();
+  } else if (activeTool === tools.select) {
+    updateSelectionRect(startX, startY, coords.x - startX, coords.y - startY);
+  }
+}
+
+function stopDrawing(event) {
+  isDrawing = false;
+  if (activeTool === tools.text) {
+    const coords = getEventCoordinates(event);
+    const text = textBox.innerText;
+    ctx.font = '30px Impact';
+    ctx.fillText(text, coords.x, coords.y);
+textBox.innerText = '';
+textBox.classList.add('hidden');
+} else if (activeTool === tools.select) {
+endX = startX + parseFloat(selectionRect.style.width);
+endY = startY + parseFloat(selectionRect.style.height);
+selectedImageData = ctx.getImageData(startX, startY, endX - startX, endY - startY);
+}
+ctx.closePath();
+}
+function getEventCoordinates(event) {
+  // Use either mouse or touch coordinates
+  const clientX = event.clientX || event.touches[0].clientX;
+  const clientY = event.clientY || event.touches[0].clientY;
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: clientX - rect.left,
+    y: clientY - rect.top
+  };
+}
+
+// Utility functions for selection tools
+function updateSelectionRect(x, y, width, height) {
+  selectionRect.style.left = `${x}px`;
+  selectionRect.style.top = `${y}px`;
+  selectionRect.style.width = `${width}px`;
+  selectionRect.style.height = `${height}px`;
+  selectionRect.style.display = 'block';
+}
+
+function cutSelection() {
+  if (selectedImageData) {
+    ctx.clearRect(startX, startY, endX - startX, endY - startY);
+    tempCtx.putImageData(selectedImageData, 0, 0);
+    selectionRect.style.display = 'none';
+  }
+}
+
+function copySelection() {
+  if (selectedImageData) {
+    tempCtx.putImageData(selectedImageData, 0, 0);
+  }
+}
+
+function pasteSelection() {
+  if (selectedImageData) {
+    ctx.putImageData(selectedImageData, startX, startY);
+    tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+    selectedImageData = null;
+    selectionRect.style.display = 'none';
+  }
+}
+
+// Utility function for paint bucket tool
+function fillBucket(x, y, fillColor) {
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const startColor = getPixelColor(imageData, x, y);
+  const newColor = hexToRgb(fillColor);
+  floodFill(imageData, x, y, startColor, newColor);
+  ctx.putImageData(imageData, 0, 0);
+}
+
+function getPixelColor(imageData, x, y) {
+  const index = (y * imageData.width + x) * 4;
+  return {
+    r: imageData.data[index],
+    g: imageData.data[index + 1],
+    b: imageData.data[index + 2],
+    a: imageData.data[index + 3]
+  };
+}
+
+function setPixelColor(imageData, x, y, color) {
+  const index = (y * imageData.width + x) * 4;
+  imageData.data[index] = color.r;
+  imageData.data[index + 1] = color.g;
+  imageData.data[index + 2] = color.b;
+  imageData.data[index + 3] = color.a;
+}
+
+function colorsMatch(a, b) {
+  return a.r === b.r && a.g === b.g && a.b === b.b && a.a === b.a;
+}
+
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16),
+    a: 255
+  } : null;
+}
+
+function floodFill(imageData, x, y, startColor, newColor) {
+if (colorsMatch(startColor, newColor)) return;
+const pixelsToCheck = [[x, y]];
+while (pixelsToCheck.length) {
+const [currX, currY] = pixelsToCheck.pop();
+const currColor = getPixelColor(imageData, currX, currY);
+if (colorsMatch(currColor, startColor)) {
+setPixelColor(imageData, currX, currY, newColor);
+if (currX > 0) pixelsToCheck.push([currX - 1, currY]);
+if (currY > 0) pixelsToCheck.push([currX, currY - 1]);
+if (currX < imageData.width - 1) pixelsToCheck.push([currX + 1, currY]);
+if (currY < imageData.height - 1) pixelsToCheck.push([currX, currY + 1]);
+}
+}
+}
+// Set initial color and brush size
+ctx.strokeStyle = document.getElementById('colorPicker').value;
+ctx.fillStyle = document.getElementById('colorPicker').value;
+textBox.style.color = document.getElementById('colorPicker').value;
+ctx.lineWidth = document.getElementById('brushSize').value;
+ctx.lineCap = 'round';
+ctx.lineJoin = 'round';
+ctx.lineJoin = 'round';
+  </script>
+</body>
+</html>
+
+
+

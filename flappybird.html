@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Flappy Bird</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <style>
+    body {
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    canvas {
+      border: 1px solid black;
+      display: none;
+    }
+    #startMenu {
+      display: block;
+    }
+    #highScore {
+      margin-top: 10px;
+    }
+    button {
+      font-size: 1.2em;
+      padding: 10px;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="startMenu">
+    <h1>Flappy Bird</h1>
+    <button onclick="startGame('easy')">Easy</button>
+    <button onclick="startGame('medium')">Medium</button>
+    <button onclick="startGame('hard')">Hard</button>
+    <div id="highScore"></div>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const startMenu = document.getElementById('startMenu');
+    const highScoreElement = document.getElementById('highScore');
+    let highScore = localStorage.getItem('highScore') || 0;
+    highScoreElement.textContent = 'High Score: ' + highScore;
+
+    // Load bird image
+    const birdImg = new Image();
+    birdImg.src = 'ski.png';
+
+    // Scale game elements based on screen size
+    const scaleFactor = Math.min(window.innerWidth / 500, window.innerHeight / 400);
+    const birdSize = 30 * scaleFactor;
+
+    // Set canvas dimensions based on screen size
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Center start menu
+    startMenu.style.marginTop = (canvas.height / 2 - 50) + 'px';
+
+    // Bird properties
+    const bird = {
+      x: birdSize * 2,
+      y: canvas.height / 2,
+      dy: 0,
+      gravity: 0.5 * scaleFactor,
+      jumpForce: -7 * scaleFactor,
+      width: birdSize,
+      height: birdSize
+    };
+
+    // Pipe properties
+    const pipes = [];
+    let pipeWidth = 60 * scaleFactor;
+    let gapHeight = 120 * scaleFactor;
+    let pipeSpacing = 200 * scaleFactor;
+    let pipeSpeed = 2 * scaleFactor;
+
+    // Game variables
+    let animationId;
+    let score = 0;
+    let powerUpActive = false;
+
+    // Clouds for parallax scrolling background
+    const clouds = [
+      { x: 0, y: 50 * scaleFactor, width: 120 * scaleFactor, height: 60 * scaleFactor },
+      { x: 200 * scaleFactor, y: 100 * scaleFactor, width: 150 * scaleFactor, height: 75 * scaleFactor },
+      { x: 400 * scaleFactor, y: 30 * scaleFactor, width: 140 * scaleFactor, height: 70 * scaleFactor }
+    ];
+
+    // Draw puffy cloud using Bezier curves
+    function drawCloud(cloud) {
+ctx.beginPath();
+ctx.moveTo(cloud.x, cloud.y + cloud.height / 2);
+ctx.quadraticCurveTo(cloud.x, cloud.y, cloud.x + cloud.width / 4, cloud.y);
+ctx.quadraticCurveTo(cloud.x + cloud.width / 2, cloud.y, cloud.x + cloud.width / 2, cloud.y + cloud.height / 2);
+ctx.quadraticCurveTo(cloud.x + cloud.width / 2, cloud.y + cloud.height, cloud.x + cloud.width / 4, cloud.y + cloud.height);
+ctx.quadraticCurveTo(cloud.x, cloud.y + cloud.height, cloud.x, cloud.y + cloud.height / 2);
+ctx.fill();
+}// Add initial pipes
+function addPipePair(x) {
+  const upperPipeHeight = Math.random() * (canvas.height - gapHeight - 100 * scaleFactor) + 50 * scaleFactor;
+  const lowerPipeHeight = canvas.height - upperPipeHeight - gapHeight;
+  pipes.push({x: x, y: 0, width: pipeWidth, height: upperPipeHeight});
+  pipes.push({x: x, y: canvas.height - lowerPipeHeight, width: pipeWidth, height: lowerPipeHeight});
+  // Randomly add power-ups
+  if (Math.random() < 0.2) {
+    pipes.push({x: x + pipeWidth / 2, y: upperPipeHeight + gapHeight / 2, width: 20 * scaleFactor, height: 20 * scaleFactor, powerUp: true});
+  }
+}
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw clouds (parallax scrolling background)
+  ctx.fillStyle = '#B0E0E6';
+  for (const cloud of clouds) {
+    drawCloud(cloud);
+    // Move clouds to the left
+    cloud.x -= 0.5;
+    // Reset position when off-screen
+    if (cloud.x + cloud.width < 0) {
+      cloud.x = canvas.width;
+    }
+  }
+
+  // Draw bird
+  ctx.drawImage(birdImg, bird.x, bird.y, bird.width, bird.height);
+
+  // Update bird position
+  bird.dy += bird.gravity;
+  bird.y += bird.dy;
+
+  // Draw pipes with 3D look
+  for (const pipe of pipes) {
+    if (pipe.powerUp) {
+      // Draw power-up (blue square)
+      ctx.fillStyle = 'blue';
+      ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
+    } else {
+      // Draw pipe with gradient fill and shadow
+      const pipeGradient = ctx.createLinearGradient(pipe.x, pipe.y, pipe.x + pipe.width, pipe.y);
+      pipeGradient.addColorStop(0, '#228B22');
+      pipeGradient.addColorStop(1, '#006400');
+      ctx.fillStyle = pipeGradient;
+      ctx.shadowColor = '#000';
+      ctx.shadowBlur = 10;
+      ctx.fillRect(pipe.x, pipe.y, pipe.width, pipe.height);
+      ctx.shadowBlur = 0; // Reset shadow
+    }
+  }
+
+  // Update pipe positions
+  for (const pipe of pipes) {
+    pipe.x -= pipeSpeed;
+  }
+
+  // Check for collisions and power-ups
+  for (const pipe of pipes) {
+    // Exclude clouds from collision detection
+    if (!pipe.powerUp && bird.x + bird.width > pipe.x && bird.x < pipe.x + pipe.width &&
+        bird.y + bird.height > pipe.y && bird.y < pipe.y + pipe.height) {
+      // Collision with pipe (game over)
+cancelAnimationFrame(animationId);
+alert('Game Over! Score: ' + score);
+// Update high score
+if (score > highScore) {
+highScore = score;
+localStorage.setItem('highScore', highScore);
+highScoreElement.textContent = 'High Score: ' + highScore;
+}
+// Show start menu
+startMenu.style.display = 'block';
+canvas.style.display = 'none';
+return;
+} else if (pipe.powerUp && bird.x + bird.width > pipe.x && bird.x < pipe.x + pipe.width &&
+bird.y + bird.height > pipe.y && bird.y < pipe.y + pipe.height) {
+// Activate power-up effect
+powerUpActive = true;
+pipe.x = -pipe.width; // Move power-up off-screen
+}
+}
+  // Apply power-up effect (e.g., increase gap size)
+  if (powerUpActive) {
+    gapHeight = 180 * scaleFactor;
+    setTimeout(() => {
+      gapHeight = 120 * scaleFactor;
+      powerUpActive = false;
+    }, 3000);
+  }
+
+  // Remove off-screen pipes and add new pipes
+  if (pipes[0].x + pipes[0].width < 0) {
+    pipes.shift();
+    pipes.shift();
+    score++;
+    addPipePair(pipes[pipes.length - 1].x + pipeSpacing);
+  }
+
+  // Check if bird hits ground or ceiling
+  if (bird.y + bird.height >= canvas.height || bird.y <= 0) {
+    cancelAnimationFrame(animationId);
+    alert('Game Over! Score: ' + score);
+    // Update high score
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem('highScore', highScore);
+      highScoreElement.textContent = 'High Score: ' + highScore;
+    }
+    // Show start menu
+    startMenu.style.display = 'block';
+    canvas.style.display = 'none';
+    return;
+  }
+
+  // Display current score
+  ctx.fillStyle = 'black';
+  ctx.font = '24px Arial';
+  ctx.fillText('Score: ' + score, 10, 30);
+
+  // Keep animating
+  animationId = requestAnimationFrame(animate);
+}
+
+// Start game with selected difficulty
+function startGame(difficulty) {
+  // Set difficulty parameters
+  if (difficulty === 'easy') {
+    bird.jumpForce = -7 * scaleFactor;
+    pipeSpeed = 2 * scaleFactor;
+    gapHeight = 140 * scaleFactor;
+  } else if (difficulty === 'medium') {
+    bird.jumpForce = -8 * scaleFactor;
+    pipeSpeed = 3 * scaleFactor;
+    gapHeight = 120 * scaleFactor;
+  } else if (difficulty === 'hard') {
+    bird.jumpForce = -9 * scaleFactor;
+    pipeSpeed = 4 * scaleFactor;
+    gapHeight = 100 * scaleFactor;
+  }
+
+  // Reset game variables
+  bird.y = canvas.height / 2;
+  bird.dy = 0;
+  pipes.length = 0;
+  score = 0;
+  powerUpActive = false;
+
+  // Add initial pipes
+  for (let i = 0; i < 3; i++) {
+    const pipeX = canvas.width + i * pipeSpacing;
+    addPipePair(pipeX);
+  }
+
+  // Hide start menu and show canvas
+  startMenu.style.display = 'none';
+  canvas.style.display = 'block';
+
+  // Start animation
+  animate();
+}
+
+// Add event listeners for jumping (both click/touch and spacebar)
+canvas.addEventListener('mousedown', () => { bird.dy = bird.jumpForce;});
+canvas.addEventListener('touchstart', () => { bird.dy = bird.jumpForce; });
+document.addEventListener('keydown', (event) => {
+if (event.code === 'Space') {
+bird.dy = bird.jumpForce;
+}
+});
+
+  </script>
+</body>
+</html>
+
+
+
+

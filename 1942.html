@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1942 Game</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222;
+        }
+        
+        canvas {
+            display: none;
+            margin: auto;
+        }
+        
+        #startScreen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 480px;
+            height: 640px;
+            background-color: #000;
+            color: #FFF;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        #startScreen h1 {
+            font-size: 72px;
+            margin: 0;
+        }
+        
+        #startScreen button {
+            font-size: 24px;
+            background-color: #444;
+            border: none;
+            color: #FFF;
+            padding: 10px 20px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        
+        #startScreen button:hover {
+            background-color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="startScreen">
+        <h1>1942</h1>
+        <button id="startButton">Press Start</button>
+    </div>
+    <canvas id="gameCanvas" width="480" height="640"></canvas>
+    <script src="game.js"></script>
+</body>
+</html>

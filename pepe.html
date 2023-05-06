@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -13,7 +14,6 @@
       position: relative;
       display: inline-block;
       width: 100%;
-      max-width: 300px;
     }
     #gameCanvas {
       width: 100%;
@@ -26,8 +26,13 @@
     }
     #touchControls {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
       margin-top: 20px;
+    }
+    .touchControlRow {
+      display: flex;
+      justify-content: center;
     }
     .touchControl {
       width: 50px;
@@ -35,20 +40,24 @@
       background-color: rgba(0, 0, 0, 0.1);
       border-radius: 50%;
       touch-action: none;
-      margin: 0 10px;
+      margin: 5px;
     }
   </style>
 </head>
 <body>
   <div id="scoreBoard">Score: 0</div>
   <div id="gameContainer">
-    <canvas id="gameCanvas" height="400"></canvas>
+    <canvas id="gameCanvas"></canvas>
   </div>
   <div id="touchControls">
-    <div class="touchControl upControl"></div>
-    <div class="touchControl downControl"></div>
-    <div class="touchControl leftControl"></div>
-    <div class="touchControl rightControl"></div>
+    <div class="touchControlRow">
+      <div class="touchControl upControl"></div>
+    </div>
+    <div class="touchControlRow">
+      <div class="touchControl leftControl"></div>
+      <div class="touchControl downControl"></div>
+      <div class="touchControl rightControl"></div>
+    </div>
   </div>
   <script>
     const canvas = document.getElementById('gameCanvas');
@@ -58,9 +67,13 @@
     const downControl = document.querySelector('.downControl');
     const leftControl = document.querySelector('.leftControl');
     const rightControl = document.querySelector('.rightControl');
-    
-    // Dynamic canvas height based on its width
-    const canvasHeight = (canvas.offsetWidth / 3) * 4;
+
+    // Dynamic canvas size based on device screen
+    const deviceWidth = window.innerWidth;
+    const deviceHeight = window.innerHeight;
+    const canvasWidth = deviceWidth;
+    const canvasHeight = (canvasWidth / 3) * 4;
+    canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
     const frogImg = new Image();
@@ -73,47 +86,50 @@
         <path d="M80,90 Q100,110 120,90" stroke="black" fill="transparent"/>
         <path d="M60,140 Q70,150 60,160" stroke="green" fill="transparent" stroke-width="6"/>
         <path d="M140,140 Q130,150 140,160" stroke="green" fill="transparent" stroke-width="6"/>
-      </svg>
-    `);
-
-    let frogX = canvas.width / 2 - 15;
-    let frogY = canvas.height - 30;
-    const frogSize = 30;
-    let score = 0;
-    let level = 1;
-    let vehicles = [
-      {x: 0, y:100, width: 50, height: 20, speed: 2, color: '#FF7F50'},
-{x: canvas.width, y: 150, width: 50, height: 20, speed: -2, color: '#7FFF00'},
+</svg>
+`);
+const frogSize = canvasWidth * 0.1;
+let frogX = canvas.width / 2 - frogSize / 2;
+let frogY = canvas.height - frogSize;
+let score = 0;
+let level = 1;
+const vehicleWidth = canvasWidth * 0.15;
+const vehicleHeight = vehicleWidth * 0.4;
+let vehicles = [
+  {x: 0, y: 100, width: vehicleWidth, height: vehicleHeight, speed: 2, color: '#FF7F50'},
+  {x: canvas.width, y: 150, width: vehicleWidth, height: vehicleHeight, speed: -2, color: '#7FFF00'},
 ];
+
 // Road color
 const roadColor = '#666666';
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowUp') frogY -= 10;
-  if (e.key === 'ArrowDown') frogY += 10;
-  if (e.key === 'ArrowLeft') frogX -= 10;
-  if (e.key === 'ArrowRight') frogX += 10;
+  const moveDistance = frogSize * 0.5;
+  if (e.key === 'ArrowUp') frogY -= moveDistance;
+  if (e.key === 'ArrowDown') frogY += moveDistance;
+  if (e.key === 'ArrowLeft') frogX -= moveDistance;
+  if (e.key === 'ArrowRight') frogX += moveDistance;
 });
 
 // Touch event listeners
 upControl.addEventListener('touchstart', (e) => {
   e.preventDefault();
-  frogY -= 10;
+  frogY -= frogSize;
 });
 
 downControl.addEventListener('touchstart', (e) => {
   e.preventDefault();
-  frogY += 10;
+  frogY += frogSize;
 });
 
 leftControl.addEventListener('touchstart', (e) => {
   e.preventDefault();
-  frogX -= 10;
+  frogX -= frogSize;
 });
 
 rightControl.addEventListener('touchstart', (e) => {
   e.preventDefault();
-  frogX += 10;
+  frogX += frogSize;
 });
 
 function gameLoop() {
@@ -121,7 +137,7 @@ function gameLoop() {
 
   // Draw road
   ctx.fillStyle = roadColor;
-  ctx.fillRect(0, 50, canvas.width, 200);
+  ctx.fillRect(0, frogSize, canvas.width, canvas.height - 2 * frogSize);
 
   // Draw frog
   ctx.drawImage(frogImg, frogX, frogY, frogSize, frogSize);
@@ -138,8 +154,8 @@ function gameLoop() {
         frogY < vehicle.y + vehicle.height &&
         frogY + frogSize > vehicle.y) {
       alert('Game Over');
-      frogX = canvas.width / 2 - 15;
-      frogY = canvas.height - 30;
+      frogX = canvas.width / 2 - frogSize / 2;
+      frogY = canvas.height - frogSize;
       score = 0;
       level = 1;
       updateScoreBoard();
@@ -147,11 +163,11 @@ function gameLoop() {
     }
   }
 
-  if (frogY < 0) {
+  if (frogY < frogSize) {
     score += 10;
     level += 1;
-    frogX = canvas.width / 2 - 15;
-    frogY = canvas.height - 30;
+    frogX = canvas.width / 2 - frogSize / 2;
+    frogY = canvas.height - frogSize;
     updateScoreBoard();
     addVehicle();
   }
@@ -161,25 +177,25 @@ function gameLoop() {
 
   requestAnimationFrame(gameLoop);
 }
-
 function updateScoreBoard() {
   scoreBoard.textContent = 'Score: ' + score + ' | Level: ' + level;
 }
 
 function resetVehicles() {
   vehicles = [
-    {x: 0, y: 100, width: 50, height: 20, speed: 2, color: '#FF7F50'},
-    {x: canvas.width, y: 150, width: 50, height: 20, speed: -2, color: '#7FFF00'},
+    {x: 0, y: 100, width: vehicleWidth, height: vehicleHeight, speed: 2, color: '#FF7F50'},
+    {x: canvas.width, y: 150, width: vehicleWidth, height: vehicleHeight, speed: -2, color: '#7FFF00'},
   ];
 }
 
 function addVehicle() {
-  const yPos = 50 + Math.floor(Math.random() * 3) * 50;
-  const speed = 2 + Math.random() *2;
-const colors = ['#FF7F50', '#7FFF00', '#FFD700', '#FF4500', '#00BFFF'];
-const color = colors[Math.floor(Math.random() * colors.length)];
-vehicles.push({x: 0, y: yPos, width: 50, height: 20, speed: speed, color: color});
+  const yPos = frogSize + Math.floor(Math.random() * 3) * (vehicleHeight + 10);
+  const speed = 2 + Math.random() * 2;
+  const colors = ['#FF7F50', '#7FFF00', '#FFD700', '#FF4500', '#00BFFF'];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  vehicles.push({x: 0, y: yPos, width: vehicleWidth, height: vehicleHeight, speed: speed, color: color});
 }
+
 gameLoop();
   </script>
 </body>

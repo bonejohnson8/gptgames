@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Frogger</title>
+  <style>
+    body {
+      text-align: center;
+    }
+    #gameCanvas {
+      border: 1px solid black;
+    }
+    #scoreBoard {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="scoreBoard">Score: 0</div>
+  <canvas id="gameCanvas" width="300" height="400"></canvas>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreBoard = document.getElementById('scoreBoard');
+
+    const frogImg = new Image();
+    frogImg.src = 'data:image/svg+xml,' + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+        <circle cx="100" cy="80" r="40" fill="green"/>
+        <ellipse cx="100" cy="130" rx="40" ry="30" fill="green"/>
+        <circle cx="85" cy="70" r="6" fill="white"/>
+        <circle cx="115" cy="70" r="6" fill="white"/>
+        <path d="M80,90 Q100,110 120,90" stroke="black" fill="transparent"/>
+        <path d="M60,140 Q70,150 60,160" stroke="green" fill="transparent" stroke-width="6"/>
+        <path d="M140,140 Q130,150 140,160" stroke="green" fill="transparent" stroke-width="6"/>
+      </svg>
+    `);
+
+    let frogX = canvas.width / 2 - 15;
+    let frogY = canvas.height - 30;
+    const frogSize = 30;
+    let score = 0;
+    let level = 1;
+    let vehicles = [
+      {x: 0, y: 100, width: 50, height: 20, speed: 2},
+      {x: canvas.width, y: 150, width: 50, height: 20, speed: -2},
+    ];
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowUp') frogY -= 10;
+      if (e.key === 'ArrowDown') frogY += 10;
+      if (e.key === 'ArrowLeft') frogX -= 10;
+      if (e.key === 'ArrowRight') frogX += 10;
+    });
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(frogImg, frogX, frogY, frogSize, frogSize);
+
+      for (const vehicle of vehicles) {
+        vehicle.x += vehicle.speed;
+        if (vehicle.x > canvas.width) vehicle.x = -vehicle.width;
+        if (vehicle.x + vehicle.width < 0) vehicle.x = canvas.width;
+        ctx.fillRect(vehicle.x, vehicle.y, vehicle.width, vehicle.height);
+        if (frogX < vehicle.x + vehicle.width &&
+            frogX + frogSize > vehicle.x &&
+            frogY < vehicle.y + vehicle.height &&
+            frogY + frogSize > vehicle.y) {
+          alert('Game Over');
+          frogX = canvas.width / 2 - 15;
+          frogY = canvas.height - 30;
+          score = 0;
+level = 1;
+updateScoreBoard();
+resetVehicles();
+}
+}
+  if (frogY < 0) {
+    score += 10;
+    level += 1;
+    frogX = canvas.width / 2 - 15;
+    frogY = canvas.height - 30;
+    updateScoreBoard();
+    addVehicle();
+  }
+
+  frogX = Math.max(0, Math.min(frogX, canvas.width - frogSize));
+  frogY = Math.max(0, Math.min(frogY, canvas.height - frogSize));
+
+  requestAnimationFrame(gameLoop);
+}
+
+function updateScoreBoard() {
+  scoreBoard.textContent = 'Score: ' + score + ' | Level: ' + level;
+}
+
+function resetVehicles() {
+  vehicles = [
+    {x: 0, y: 100, width: 50, height: 20, speed: 2},
+    {x: canvas.width, y: 150, width: 50, height: 20, speed: -2},
+  ];
+}
+
+function addVehicle() {
+  const yPos = 50 + Math.floor(Math.random() * 3) * 50;
+  const speed = 2 + Math.random() * 2;
+  vehicles.push({x: 0, y: yPos, width: 50, height: 20, speed: speed});
+}
+
+gameLoop();
+  </script>
+</body>
+</html>

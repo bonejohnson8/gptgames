@@ -1,276 +1,806 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BONEPAINT</title>
-  <style>
-    /* Styles for the updated interface */
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #c0c0c0;
-      margin: 0;
-      padding: 0;
-    }
-    #app {
-      background-color: #ffffff;
-      width: 820px;
-      margin: 20px auto;
-      padding: 10px;
-      box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.5);
-    }
-    #title {
-      font-size: 24px;
-      color: #000000;
-      margin: 10px;
-    }
-    #toolbar {
-      background-color: #c0c0c0;
-      padding: 5px;
-    }
-    .tool-btn {
-      margin: 5px;
-      padding: 5px 10px;
-      border: 1px solid #000000;
-      background-color: #ffffff;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .tool-btn:hover {
-      transform: translateY(-3px);
-      box-shadow: 0px 3px 5px rgba(0, 0, 0, 0.3);
-    }
-    #canvasContainer {
-      position: relative;
-      display: inline-block;
-      margin-top: 10px;
-    }
-    #canvas {
-      border: 1px solid black;
-      cursor: crosshair;
-    }
-    #tempCanvas {
-      position: absolute;
-      display: none;
-    }
-    #selectionRect {
-      position: absolute;
-      border: 1px dashed #000;
-      display: none;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BONEPAINT</title>
+<style>
+  body {
+    margin: 0;
+    font-family: sans-serif;
+    background: #1e1e1e;
+    color: #ddd;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  #header {
+    background: #1e1e1e;
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid #444;
+    flex-shrink: 0;
+  }
+  #header h1 {
+    margin: 0;
+    font-size: 1.5em;
+    font-family: "Lucida Console", Monaco, monospace;
+    color: #ff6666; 
+    letter-spacing: 2px;
+    text-shadow: 0 0 5px #ff0000;
+  }
+  #header h2 {
+    margin: 0;
+    font-size: 2.5em;
+    font-weight: bold;
+    font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+    color: #ffffff;
+    letter-spacing: 3px;
+    text-shadow: 0 0 3px #fff;
+    margin-top: 5px;
+  }
+
+  #toolbar {
+    background: #2c2c2c;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-bottom: 1px solid #444;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  #toolbar button {
+    background: #3a3a3a;
+    border: none;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    color: #ccc;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    margin: 2px;
+    font-size: 16px;
+    transition: background 0.2s;
+  }
+
+  #toolbar button:hover {
+    background: #505050;
+  }
+
+  #toolbar button.selected {
+    background: #606060;
+  }
+
+  #toolbar input[type=color] {
+    width: 30px;
+    height: 30px;
+    border: none;
+    margin: 2px;
+    cursor: pointer;
+  }
+
+  #toolbar input[type=range] {
+    width: 100px;
+    margin: 0 4px;
+  }
+
+  #toolbar select,
+  #toolbar input[type=number] {
+    background: #3a3a3a;
+    border: 1px solid #444;
+    color: #ddd;
+    margin: 0 4px;
+  }
+
+  #canvas-container {
+    position: relative;
+    background: #1e1e1e;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+  }
+
+  canvas {
+    background: #fff;
+    box-shadow: 0 0 5px #000;
+    cursor: crosshair;
+  }
+
+  #statusbar {
+    background: #2c2c2c;
+    padding: 2px 4px;
+    font-size: 12px;
+    color: #aaa;
+    border-top: 1px solid #444;
+    flex-shrink: 0;
+    text-align: center;
+  }
+
+  #text-input-container {
+    position: absolute;
+    display: none;
+    border: 1px solid #333;
+    background: #2c2c2c;
+    padding: 4px;
+    border-radius: 4px;
+  }
+
+  #text-input {
+    width: 200px;
+    font-family: sans-serif;
+    background: #3a3a3a;
+    border: 1px solid #555;
+    color: #ddd;
+  }
+
+  #text-apply, #text-cancel {
+    background: #3a3a3a;
+    border: 1px solid #444;
+    color: #ddd;
+    cursor: pointer;
+    margin-left: 4px;
+    border-radius: 2px;
+    padding: 2px 6px;
+  }
+
+  #text-apply:hover, #text-cancel:hover {
+    background: #505050;
+  }
+
+  #float-selection {
+    position: absolute;
+    border: 1px dashed #fff;
+    display: none;
+    pointer-events: none;
+  }
+
+  .text-selection-box {
+    position: absolute;
+    border: 1px solid #00f;
+    background: rgba(0,0,255,0.1);
+    pointer-events: none;
+    display: none;
+  }
+
+  .resize-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #00f;
+    cursor: nwse-resize;
+    display: none;
+  }
+
+  #size-value {
+    margin-left: 5px;
+    color: #ddd;
+  }
+
+</style>
 </head>
 <body>
-  <div id="app">
-    <h1 id="title">BONEPAINT</h1>
-    <div id="toolbar">
-      <button class="tool-btn" id="brushBtn">Brush</button>
-      <button class="tool-btn" id="marqueeBtn">Marquee</button>
-      <button class="tool-btn" id="moveBtn">Move</button>
-      <button class="tool-btn" id="copyBtn">Copy</button>
-      <button class="tool-btn" id="pasteBtn">Paste</button>
-      <button class="tool-btn" id="clearBtn">Clear</button>
-      <button class="tool-btn" id="eraserBtn">Eraser</button>
-      <button class="tool-btn" id="sprayCanBtn">Spray Can</button>
-      <button class="tool-btn" id="paintBucketBtn">Paint Bucket</button>
-      <input type="color" id="colorPicker" value="#000000">
-<input type="number" id="brushSize" value="5" min="1">
-</div>
-<div id="canvasContainer">
-<canvas id="canvas" width="800" height="400"></canvas>
-<canvas id="tempCanvas" width="800" height="400"></canvas>
-<div id="selectionRect"></div>
-</div>
-
+<div class="container">
+  <div id="header">
+    <h1>DIDSOMEBODYF.ART</h1>
+    <h2>BONEPAINT</h2>
   </div>
-  <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const tempCanvas = document.getElementById('tempCanvas');
-    const tempCtx = tempCanvas.getContext('2d');
-    const selectionRect = document.getElementById('selectionRect');
-    let isDrawing = false;
-    let activeTool = null;
-    let startX, startY, endX, endY;
+  <div id="toolbar">
+    <button data-tool="pencil">✏️</button>
+    <button data-tool="brush">🖌️</button>
+    <button data-tool="airbrush">💨</button>
+    <button data-tool="eraser">🩹</button>
+    <button data-tool="fill">🪣</button>
+    <button data-tool="text">T</button>
+    <button data-tool="select">🔲</button>
+    <button data-tool="zoom">🔍</button>
 
-    function getCanvasRelativeCoords(event) {
-      const rect = canvas.getBoundingClientRect();
-      return {
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top
-      };
-    }
+    <button id="undo">↶</button>
+    <button id="redo">↷</button>
 
-    // Define tools
-    const tools = {
-      brush: 'brush',
-      marquee: 'marquee',
-      move: 'move',
-      copy: 'copy',
-      paste: 'paste',
-      clear: 'clear',
-      eraser: 'eraser',
-      sprayCan: 'sprayCan',
-      paintBucket: 'paintBucket'
+    <button id="copy">📋</button>
+    <button id="cut">✂️</button>
+    <button id="paste">📥</button>
+
+    <input type="color" id="custom-color" value="#000000">
+
+    <label style="color:#ccc;">Size:
+      <input type="range" id="size" min="1" max="50" value="10">
+      <span id="size-value">10</span>
+    </label>
+
+    <label style="color:#ccc;">Font:
+      <select id="font-family">
+        <option>sans-serif</option>
+        <option>serif</option>
+        <option>monospace</option>
+        <option>cursive</option>
+        <option>fantasy</option>
+      </select>
+    </label>
+    <label style="color:#ccc;">
+      <input type="number" id="font-size" value="20" style="width:50px;">px
+    </label>
+
+    <button id="save">💾</button>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div id="text-input-container">
+      <input type="text" id="text-input" placeholder="Type here...">
+      <button id="text-apply">OK</button>
+      <button id="text-cancel">Cancel</button>
+    </div>
+    <div id="float-selection"></div>
+    <div id="text-selection-box" class="text-selection-box"></div>
+    <div id="text-resize-handle" class="resize-handle"></div>
+  </div>
+
+  <div id="statusbar">
+    <span id="status">Ready</span>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+  // After DOM is loaded, select elements and define variables:
+  const toolbar = document.getElementById('toolbar');
+  const statusEl = document.getElementById('status');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  const undoBtn = document.getElementById('undo');
+  const redoBtn = document.getElementById('redo');
+  const copyBtn = document.getElementById('copy');
+  const cutBtn = document.getElementById('cut');
+  const pasteBtn = document.getElementById('paste');
+  const sizeInput = document.getElementById('size');
+  const sizeValue = document.getElementById('size-value');
+  const fontFamilyInput = document.getElementById('font-family');
+  const fontSizeInput = document.getElementById('font-size');
+  const saveBtn = document.getElementById('save');
+  const textInputContainer = document.getElementById('text-input-container');
+  const textInput = document.getElementById('text-input');
+  const textApply = document.getElementById('text-apply');
+  const textCancel = document.getElementById('text-cancel');
+  const floatSelection = document.getElementById('float-selection');
+  const customColorInput = document.getElementById('custom-color');
+  const textSelectionBox = document.getElementById('text-selection-box');
+  const textResizeHandle = document.getElementById('text-resize-handle');
+
+  let currentTool = 'pencil';
+  let currentColor = '#000000';
+  let currentSize = 10;
+  let fontFamily = 'sans-serif';
+  let fontSizeVal = 20;
+
+  let drawing = false;
+  let startX = 0, startY = 0;
+  let lastX = 0, lastY = 0;
+  let imageHistory = [];
+  let redoStack = [];
+  let selectionData = null; 
+  let selectionRect = null;
+  let airbrushInterval = null;
+  let zoomLevel = 1.0;
+  let panX = 0, panY = 0;
+  let isSelecting = false;
+  let selectedArea = null;
+  let textModeActive = false;
+
+  let textObjects = [];
+  let selectedTextObject = null;
+  let isResizingText = false;
+  let resizeStartX = 0, initialFontSize = 20;
+  let clickedPos = {x:0,y:0};
+
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  function setStatus(msg) {
+    statusEl.textContent = msg;
+  }
+
+  function setTool(tool) {
+    currentTool = tool;
+    toolbar.querySelectorAll('button[data-tool]').forEach(b=>b.classList.remove('selected'));
+    const btn = toolbar.querySelector(`button[data-tool=${tool}]`);
+    if(btn) btn.classList.add('selected');
+    setStatus(`Tool: ${tool}`);
+  }
+
+  function pushHistory() {
+    redoStack = [];
+    let state = {
+      image: canvas.toDataURL(),
+      textObjects: JSON.parse(JSON.stringify(textObjects))
     };
+    imageHistory.push(state);
+  }
 
-    // Event listeners for buttons
-    document.getElementById('brushBtn').addEventListener('click', () => {
-      setActiveTool(tools.brush);
-      ctx.globalCompositeOperation = 'source-over';
-    });
+  function undo() {
+    if(imageHistory.length>1) {
+      redoStack.push(imageHistory.pop());
+      restoreFromHistory(imageHistory[imageHistory.length-1]);
+    }
+  }
 
-    document.getElementById('marqueeBtn').addEventListener('click', () => {
-      setActiveTool(tools.marquee);
-    });
+  function redo() {
+    if(redoStack.length>0) {
+      let s = redoStack.pop();
+      imageHistory.push(s);
+      restoreFromHistory(s);
+    }
+  }
 
-    document.getElementById('moveBtn').addEventListener('click', () => {
-      setActiveTool(tools.move);
-      moveSelection();
-    });
+  function redraw() {
+    if(imageHistory.length===0) return;
+    let state = imageHistory[imageHistory.length-1];
+    let imgObj = new Image();
+    imgObj.src = state.image;
+    imgObj.onload = ()=>{
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(imgObj,0,0);
+      drawTextObjects();
+    };
+  }
 
-    document.getElementById('copyBtn').addEventListener('click', () => {
-      setActiveTool(tools.copy);
-      copySelection();
-    });
+  function restoreFromHistory(state) {
+    let imgObj = new Image();
+    imgObj.src = state.image;
+    imgObj.onload = ()=>{
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(imgObj,0,0);
+      textObjects = JSON.parse(JSON.stringify(state.textObjects));
+      drawTextObjects();
+    };
+  }
 
-    document.getElementById('pasteBtn').addEventListener('click', () => {
-      setActiveTool(tools.paste);
-      pasteSelection();
-    });
+  function copyArea(x,y,w,h) {
+    let tempCanvas = document.createElement('canvas');
+    let W = Math.abs(w), H = Math.abs(h);
+    tempCanvas.width=W;
+    tempCanvas.height=H;
+    let tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(canvas, x, y, w, h, 0, 0, w, h);
+    return tempCanvas;
+  }
 
-    document.getElementById('clearBtn').addEventListener('click', () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      resetTools();
-    });
+  function updateFloatSelection() {
+    floatSelection.style.display='none';
+  }
 
-    document.getElementById('eraserBtn').addEventListener('click', () => {
-      setActiveTool(tools.eraser);
-      ctx.globalCompositeOperation = 'destination-out';
-    });
+  function copySelectionAction() {
+    if(selectedArea) {
+      selectionData = selectedArea;
+      setStatus('Copied selection.');
+    } else {
+      setStatus('No selection to copy.');
+    }
+  }
 
-    document.getElementById('sprayCanBtn').addEventListener('click', () => {
-      setActiveTool(tools.sprayCan);
-    });
+  function cutSelectionAction() {
+    if(selectedArea) {
+      selectionData = selectedArea;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(selectionRect.x, selectionRect.y, selectionRect.w, selectionRect.h);
+      ctx.clip();
+      ctx.clearRect(selectionRect.x, selectionRect.y, selectionRect.w, selectionRect.h);
+      ctx.restore();
+      pushHistory();
+      setStatus('Cut selection.');
+    } else {
+      setStatus('No selection to cut.');
+    }
+  }
 
-    document.getElementById('paintBucketBtn').addEventListener('click', () => {
-      setActiveTool(tools.paintBucket);
-    });
+  function pasteSelectionAction() {
+    if(selectionData) {
+      ctx.drawImage(selectionData,0,0);
+      pushHistory();
+      setStatus('Pasted selection.');
+    } else {
+      setStatus('No selection in clipboard.');
+    }
+  }
 
-    document.getElementById('colorPicker').addEventListener('change', (e) => {
-      ctx.strokeStyle = e.target.value;
-      resetTools();
-      ctx.globalCompositeOperation = 'source-over';
-    });
+  function fillArea(x,y,newColor) {
+    const w = canvas.width;
+    const h = canvas.height;
+    const imgData = ctx.getImageData(0,0,w,h);
+    const data = imgData.data;
+    const startX = Math.floor(x);
+    const startY = Math.floor(y);
+    if(startX<0||startX>=w||startY<0||startY>=h) return;
+    const startPos = (startY*w+startX)*4;
+    const startColor = [data[startPos],data[startPos+1],data[startPos+2],data[startPos+3]];
+    if(colorsMatch(startColor,newColor)) return;
 
-    document.getElementById('brushSize').addEventListener('change', (e) => {
-      ctx.lineWidth = e.target.value;
-    });
+    const stack = [[startX, startY]];
+    while(stack.length) {
+      const [sx, sy] = stack.pop();
+      if(sx<0||sy<0||sx>=w||sy>=h) continue;
+      const pos = (sy*w+sx)*4;
+      const pixelColor = [data[pos],data[pos+1],data[pos+2],data[pos+3]];
+      if(colorsMatch(pixelColor,startColor)) {
+        data[pos]=newColor[0];
+        data[pos+1]=newColor[1];
+        data[pos+2]=newColor[2];
+        data[pos+3]=newColor[3];
+        stack.push([sx+1,sy],[sx-1,sy],[sx,sy+1],[sx,sy-1]);
+      }
+    }
+    ctx.putImageData(imgData,0,0);
+    drawTextObjects();
+  }
 
-    // Set active tool
-    function setActiveTool(tool) {
-      activeTool = tool;
-      resetTools();
+  function colorsMatch(a,b) {
+    return a[0]===b[0] && a[1]===b[1] && a[2]===b[2] && a[3]===b[3];
+  }
+
+  function drawTextObjects() {
+    for(let obj of textObjects) {
+      ctx.font = obj.fontSize+'px '+obj.fontFamily;
+      ctx.textBaseline='top';
+      ctx.fillStyle = obj.color;
+      ctx.fillText(obj.text, obj.x, obj.y);
+    }
+  }
+
+  function hitTestTextObjects(pos) {
+    for(let i=textObjects.length-1; i>=0; i--) {
+      let obj = textObjects[i];
+      ctx.font = obj.fontSize+'px '+obj.fontFamily;
+      ctx.textBaseline='top';
+      const w = ctx.measureText(obj.text).width;
+      const h = obj.fontSize;
+      if(pos.x>=obj.x && pos.x<=obj.x+w && pos.y>=obj.y && pos.y<=obj.y+h) {
+        return obj;
+      }
+    }
+    return null;
+  }
+
+  function showTextSelection(obj) {
+    ctx.font = obj.fontSize+'px '+obj.fontFamily;
+    ctx.textBaseline='top';
+    const w = ctx.measureText(obj.text).width;
+    const h = obj.fontSize;
+    textSelectionBox.style.display = 'block';
+    textSelectionBox.style.left = (obj.x*zoomLevel)+'px';
+    textSelectionBox.style.top = (obj.y*zoomLevel)+'px';
+    textSelectionBox.style.width = (w*zoomLevel)+'px';
+    textSelectionBox.style.height = (h*zoomLevel)+'px';
+
+    textResizeHandle.style.display='block';
+    textResizeHandle.style.left = ((obj.x+w)*zoomLevel - 5)+'px';
+    textResizeHandle.style.top = ((obj.y+h)*zoomLevel - 5)+'px';
+  }
+
+  function hideTextSelection() {
+    textSelectionBox.style.display='none';
+    textResizeHandle.style.display='none';
+    selectedTextObject = null;
+  }
+
+  function isOverTextResizeHandle(pos, obj) {
+    ctx.font = obj.fontSize+'px '+obj.fontFamily;
+    ctx.textBaseline='top';
+    const w = ctx.measureText(obj.text).width;
+    const h = obj.fontSize;
+    const handleX = obj.x+w;
+    const handleY = obj.y+h;
+    return (pos.x >= handleX-10 && pos.x <= handleX && pos.y >= handleY-10 && pos.y<=handleY);
+  }
+
+  function showTextInput(x,y, initialText) {
+    textInputContainer.style.display='block';
+    textInputContainer.style.left=(x*zoomLevel)+'px';
+    textInputContainer.style.top=(y*zoomLevel - 30)+'px';
+    textInput.value=initialText;
+    textInput.focus();
+    textModeActive = true;
+  }
+
+  function applyText() {
+    const txt = textInput.value;
+    hideTextInput();
+    if(selectedTextObject) {
+      selectedTextObject.text = txt;
+      pushHistory();
+    } else {
+      textObjects.push({
+        x: clickedPos.x,
+        y: clickedPos.y,
+        text: txt,
+        fontSize: fontSizeVal,
+        fontFamily: fontFamily,
+        color: currentColor
+      });
+      pushHistory();
+      selectedTextObject = textObjects[textObjects.length-1];
+    }
+    redraw();
+    showTextSelection(selectedTextObject);
+  }
+
+  function cancelText() {
+    hideTextInput();
+  }
+
+  function hideTextInput() {
+    textInputContainer.style.display='none';
+    textModeActive = false;
+  }
+
+  function pointerPos(e) {
+    let rect = canvas.getBoundingClientRect();
+    let x, y;
+    if(e.touches) {
+      x = e.touches[0].clientX - rect.left;
+      y = e.touches[0].clientY - rect.top;
+    } else {
+      x = e.clientX - rect.left;
+      y = e.clientY - rect.top;
+    }
+    return {x:x/zoomLevel - panX, y:y/zoomLevel - panY};
+  }
+
+  function onCanvasMouseDown(e){
+    const pos = pointerPos(e);
+    clickedPos = pos;
+    if(currentTool === 'select') {
+      if(selectedTextObject && isOverTextResizeHandle(pos, selectedTextObject)) {
+        isResizingText = true;
+        resizeStartX = pos.x;
+        initialFontSize = selectedTextObject.fontSize;
+        return;
+      }
+      let obj = hitTestTextObjects(pos);
+      if(obj) {
+        selectedTextObject = obj;
+        showTextSelection(obj);
+      } else {
+        selectedTextObject = null;
+        hideTextSelection();
+        isSelecting = true;
+        selectionRect = {x:pos.x, y:pos.y, w:0, h:0};
+        updateFloatSelection();
+      }
+      return;
     }
 
-    // Reset tools
-    function resetTools() {
-      isDrawing = false;
-      isEraser = false;
-      isSprayCan = false;
-      isPaintBucket = false;
-      isMarquee = false;
-      isMoving = false;
-      isCopying = false;
-      isPasting = false;
-      ctx.globalCompositeOperation = 'source-over';
+    if(isResizingText) return;
+
+    if(currentTool === 'text') {
+      showTextInput(pos.x, pos.y, '');
+      return;
     }
 
-    // Drawing on canvas
-    canvas.addEventListener('mousedown', (e) => {
-      isDrawing = true;
-      const coords = getCanvasRelativeCoords(e);
-      if (activeTool ===tools.sprayCan) {
-spray(coords.x, coords.y);
-} else if (activeTool === tools.paintBucket) {
-fillBucket(coords.x, coords.y, ctx.strokeStyle);
-} else if (activeTool === tools.marquee) {
-startX = coords.x;
-startY = coords.y;
-endX = startX;
-endY = startY;
-updateSelectionRect();
-} else {
-ctx.beginPath();
-ctx.moveTo(coords.x, coords.y);
-}
-});
-canvas.addEventListener('mousemove', (e) => {
-  const coords = getCanvasRelativeCoords(e);
-  if (isDrawing && activeTool !== tools.sprayCan && activeTool !== tools.paintBucket && activeTool !== tools.marquee) {
-    ctx.lineTo(coords.x, coords.y);
+    if(currentTool === 'zoom') {
+      zoomLevel *= 1.25;
+      redraw();
+      return;
+    }
+
+    drawing = true;
+    startX = lastX = pos.x;
+    startY = lastY = pos.y;
+
+    if(currentTool === 'airbrush') {
+      startAirbrush(pos.x,pos.y);
+    }
+  }
+
+  function onCanvasMouseMove(e) {
+    const pos = pointerPos(e);
+    setStatus(`(${Math.floor(pos.x)}, ${Math.floor(pos.y)}) Tool: ${currentTool}`);
+
+    if(isResizingText && selectedTextObject) {
+      let dx = pos.x - resizeStartX;
+      let newSize = initialFontSize + dx;
+      if(newSize<5) newSize=5;
+      selectedTextObject.fontSize = newSize;
+      redraw();
+      showTextSelection(selectedTextObject);
+      return;
+    }
+
+    if(isSelecting && selectionRect) {
+      selectionRect.w = pos.x - selectionRect.x;
+      selectionRect.h = pos.y - selectionRect.y;
+      updateFloatSelection();
+      return;
+    }
+
+    if(!drawing) return;
+
+    switch(currentTool) {
+      case 'pencil':
+      case 'brush':
+      case 'eraser':
+        drawLine(lastX, lastY, pos.x, pos.y);
+        lastX = pos.x;
+        lastY = pos.y;
+        break;
+      case 'airbrush':
+        lastX = pos.x; lastY = pos.y;
+        break;
+    }
+  }
+
+  function onCanvasMouseUp(e) {
+    if(isResizingText) {
+      isResizingText = false;
+      pushHistory();
+      return;
+    }
+
+    if(isSelecting) {
+      isSelecting = false;
+      floatSelection.style.display = 'block';
+      floatSelection.style.left = (selectionRect.x*zoomLevel)+'px';
+      floatSelection.style.top = (selectionRect.y*zoomLevel)+'px';
+      floatSelection.style.width = Math.abs(selectionRect.w)*zoomLevel+'px';
+      floatSelection.style.height = Math.abs(selectionRect.h)*zoomLevel+'px';
+      selectedArea = copyArea(selectionRect.x, selectionRect.y, selectionRect.w, selectionRect.h);
+      return;
+    }
+
+    if(!drawing) return;
+    drawing = false;
+    stopAirbrush();
+
+    const pos = pointerPos(e);
+    if(currentTool==='fill') {
+      fillArea(pos.x, pos.y, hexToRGBA(currentColor));
+      pushHistory();
+    } else if(['pencil','brush','eraser','airbrush'].includes(currentTool)) {
+      pushHistory();
+    }
+  }
+
+  function onCanvasDblClick(e) {
+    const pos = pointerPos(e);
+    let obj = hitTestTextObjects(pos);
+    if(obj) {
+      selectedTextObject = obj;
+      showTextInput(obj.x, obj.y, obj.text);
+    }
+  }
+
+  function setStrokeStyle(context) {
+    context.lineWidth = currentSize;
+    if(currentTool==='brush') {
+      context.lineCap='round';
+      context.lineJoin='round';
+    } else {
+      context.lineCap='butt';
+      context.lineJoin='miter';
+    }
+    context.strokeStyle = currentColor;
+    context.fillStyle = currentColor;
+  }
+
+  function drawLine(x1,y1,x2,y2) {
+    ctx.save();
+    setStrokeStyle(ctx);
+    if(currentTool==='eraser') {
+      ctx.globalCompositeOperation='destination-out';
+    }
+    ctx.beginPath();
+    ctx.moveTo(x1,y1);
+    ctx.lineTo(x2,y2);
     ctx.stroke();
-  } else if (isDrawing && activeTool === tools.sprayCan) {
-    spray(coords.x, coords.y);
-  } else if (isDrawing && activeTool === tools.marquee) {
-    endX = coords.x;
-    endY = coords.y;
-    updateSelectionRect();
+    ctx.globalCompositeOperation='source-over';
+    ctx.restore();
   }
-});
 
-canvas.addEventListener('mouseup', () => {
-  isDrawing = false;
-  ctx.closePath();
-});
-
-// Tool functions
-function spray(x, y) {
-  const density = 50;
-  const radius = ctx.lineWidth;
-  for (let i = 0; i < density; i++) {
-    const offsetX = Math.random() * 2 * radius - radius;
-    const offsetY = Math.random() * 2 * radius - radius;
-    ctx.fillRect(x + offsetX, y + offsetY, 1, 1);
+  function startAirbrush(x,y) {
+    stopAirbrush();
+    airbrushInterval = setInterval(()=>{
+      for(let i=0;i<30;i++){
+        let rx = lastX + (Math.random()-0.5)*currentSize*5;
+        let ry = lastY + (Math.random()-0.5)*currentSize*5;
+        ctx.save();
+        ctx.fillStyle = currentColor;
+        ctx.fillRect(rx,ry,1,1);
+        ctx.restore();
+      }
+    },30);
   }
-}
 
-function fillBucket(x, y, fillColor) {
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const startColor = getPixelColor(imageData, x, y);
-  const newColor = hexToRgb(fillColor);
-  floodFill(imageData, x, y, startColor, newColor);
-  ctx.putImageData(imageData, 0, 0);
-}
+  function stopAirbrush() {
+    if(airbrushInterval) {
+      clearInterval(airbrushInterval);
+      airbrushInterval = null;
+    }
+  }
 
-function moveSelection() {
-  // (Same code as before)
-}
+  function hexToRGBA(hex) {
+    hex = hex.replace('#','');
+    let r,g,b;
+    if(hex.length===3) {
+      r=parseInt(hex[0]+hex[0],16);
+      g=parseInt(hex[1]+hex[1],16);
+      b=parseInt(hex[2]+hex[2],16);
+    } else {
+      r=parseInt(hex.substr(0,2),16);
+      g=parseInt(hex.substr(2,2),16);
+      b=parseInt(hex.substr(4,2),16);
+    }
+    return [r,g,b,255];
+  }
 
-function copySelection() {
-  // (Same code as before)
-}
+  // Set initial tool and push history after all functions defined
+  pushHistory();
+  setTool('pencil');
+  setStatus('Ready');
 
-function pasteSelection() {
-  // (Same code as before)
-}
+  // Event listeners
+  toolbar.querySelectorAll('button[data-tool]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      setTool(btn.getAttribute('data-tool'));
+    });
+  });
 
-function updateSelectionRect() {
-  // (Same code as before)
-}
+  customColorInput.addEventListener('change', ()=>{
+    currentColor = customColorInput.value;
+    setStatus(`Color: ${currentColor}`);
+  });
 
-// Utility functions for color manipulation and flood fill
-// (Same code as before)
+  sizeInput.addEventListener('input', ()=>{
+    currentSize = parseInt(sizeInput.value,10);
+    sizeValue.textContent = currentSize;
+  });
 
-// Set initial color and brush size
-ctx.strokeStyle = document.getElementById('colorPicker').value;
-ctx.lineWidth = document.getElementById('brushSize').value;
-ctx.lineCap = 'round';
-ctx.lineJoin = 'round';
-  </script>
+  fontFamilyInput.addEventListener('change', ()=>{
+    fontFamily = fontFamilyInput.value;
+  });
+  fontSizeInput.addEventListener('change', ()=>{
+    fontSizeVal = parseInt(fontSizeInput.value,10);
+  });
+
+  undoBtn.addEventListener('click', undo);
+  redoBtn.addEventListener('click', redo);
+
+  copyBtn.addEventListener('click', copySelectionAction);
+  cutBtn.addEventListener('click', cutSelectionAction);
+  pasteBtn.addEventListener('click', pasteSelectionAction);
+
+  saveBtn.addEventListener('click', ()=>{
+    const dataURL = canvas.toDataURL("image/png");
+    const a = document.createElement('a');
+    a.href = dataURL;
+    a.download = 'bonepaint.png';
+    a.click();
+  });
+
+  textApply.addEventListener('click', applyText);
+  textCancel.addEventListener('click', cancelText);
+
+  canvas.addEventListener('mousedown', onCanvasMouseDown);
+  canvas.addEventListener('mousemove', onCanvasMouseMove);
+  canvas.addEventListener('mouseup', onCanvasMouseUp);
+  canvas.addEventListener('dblclick', onCanvasDblClick);
+
+});
+</script>
 </body>
 </html>
-
-
-
-

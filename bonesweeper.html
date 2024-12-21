@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>BONESWEEPER 🦴💀🦴</title>
+  <!--
+    BONESWEEPER
+    Single-file Minesweeper Implementation
+    with a spooky skull-and-bones theme.
+    
+    Author: ChatGPT
+    Last Updated: 2024-12-21
+  -->
+  <style>
+    /* ============================== 
+       GLOBAL STYLES / RESET
+       ============================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: #121212;
+      font-family: "Trebuchet MS", sans-serif;
+      color: #eeeeee;
+      overflow-x: hidden;
+      -webkit-user-select: none;  
+      -moz-user-select: none;     
+      -ms-user-select: none;      
+      user-select: none;          
+      position: relative;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 1rem;
+    }
+
+    /* 
+      Fun bony background using repeated skulls/bones as a pattern.
+      We'll use a couple of large Unicode strings, placed via ::before/::after.
+    */
+    body::before {
+      content: "🦴🦴💀🦴🦴💀🦴🦴💀🦴🦴";
+      position: absolute;
+      top: -20%;
+      left: 50%;
+      transform: translateX(-50%) rotate(-25deg);
+      font-size: 5rem;
+      color: #2c2c2c;
+      opacity: 0.1;
+      pointer-events: none;
+    }
+    body::after {
+      content: "🦴🦴💀🦴🦴💀🦴🦴💀🦴🦴";
+      position: absolute;
+      bottom: -20%;
+      left: 50%;
+      transform: translateX(-50%) rotate(25deg);
+      font-size: 5rem;
+      color: #2c2c2c;
+      opacity: 0.1;
+      pointer-events: none;
+    }
+
+    /* ============================== 
+       TITLE / HEADER
+       ============================== */
+    h1 {
+      font-size: 3rem;
+      letter-spacing: 0.1em;
+      margin-bottom: 1rem;
+      color: #ff4444;
+      text-align: center;
+      text-shadow: 2px 2px 5px rgba(255, 0, 0, 0.4);
+    }
+
+    /* ============================== 
+       CONTROL PANEL
+       ============================== */
+    .control-panel {
+      display: flex;
+      flex-flow: row wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .control-panel > * {
+      background: #222;
+      border: 1px solid #444;
+      color: #eee;
+      padding: 0.5rem;
+      font-size: 1rem;
+      outline: none;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .control-panel select {
+      cursor: pointer;
+    }
+    .control-panel button:hover,
+    .control-panel select:hover {
+      background: #333;
+    }
+    .control-panel button:active {
+      background: #555;
+    }
+
+    /* ============================== 
+       INFO PANEL
+       ============================== */
+    .info-panel {
+      display: flex;
+      flex-direction: row;
+      gap: 1rem;
+      justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+    .info-panel .info {
+      min-width: 80px;
+      text-align: center;
+      background: #222;
+      border: 1px solid #444;
+      padding: 0.5rem;
+      border-radius: 4px;
+    }
+
+    /* ============================== 
+       GAME CONTAINER & GRID
+       ============================== */
+    #game-container {
+      position: relative;
+      user-select: none; /* Prevent accidental text selection on double-click */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #grid {
+      display: grid;
+      margin: 0 auto;
+      border: 2px solid #444;
+      background-color: #222222;
+      border-radius: 8px;
+    }
+    .cell {
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      cursor: pointer;
+      background-color: #444;
+      border: 1px solid #333;
+      color: #eee;
+      transition: background-color 0.2s ease;
+      user-select: none;
+      position: relative;
+      font-size: 1rem;
+    }
+    .cell:hover {
+      background-color: #555;
+    }
+    .cell.revealed {
+      background-color: #222;
+      cursor: default;
+    }
+    .cell.revealed:hover {
+      background-color: #222; /* No hover effect once revealed */
+    }
+    .cell.flagged::after {
+      content: "⚑";
+      position: absolute;
+      color: #ff4444;
+      font-size: 1.2rem;
+    }
+    .cell.bomb::before {
+      content: "💀";
+      position: absolute;
+      font-size: 1.2rem;
+    }
+
+    /* Number coloring for neighbor bomb counts */
+    .cell[data-count="1"] { color: #00ffff; }
+    .cell[data-count="2"] { color: #00ff00; }
+    .cell[data-count="3"] { color: #ff9900; }
+    .cell[data-count="4"] { color: #ff00ff; }
+    .cell[data-count="5"] { color: #ff9999; }
+    .cell[data-count="6"] { color: #99ffff; }
+    .cell[data-count="7"] { color: #ffff99; }
+    .cell[data-count="8"] { color: #ff0000; }
+
+    /* ============================== 
+       OVERLAYS (WIN/LOSE)
+       ============================== */
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0,0,0,0.7);
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      z-index: 10;
+      font-size: 2rem;
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    .overlay.show {
+      display: flex;
+    }
+    .overlay-message {
+      margin-bottom: 1rem;
+      text-align: center;
+      color: #ff4444;
+      text-shadow: 2px 2px 4px #222;
+      font-size: 2rem;
+    }
+    .overlay button {
+      padding: 0.5rem 1rem;
+      border: 1px solid #444;
+      background: #222;
+      color: #eee;
+      cursor: pointer;
+      font-size: 1rem;
+      border-radius: 4px;
+    }
+    .overlay button:hover {
+      background: #333;
+    }
+
+    /* 
+      MEDIA QUERIES / RESPONSIVENESS 
+    */
+    @media (max-width: 600px) {
+      .cell {
+        width: 25px;
+        height: 25px;
+        font-size: 0.9rem;
+      }
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TITLE -->
+  <h1>🦴 BONESWEEPER 🦴</h1>
+
+  <!-- CONTROL PANEL -->
+  <div class="control-panel">
+    <select id="difficultySelect" title="Difficulty">
+      <option value="easy">Easy (9x9 / 10 bombs)</option>
+      <option value="medium">Medium (16x16 / 40 bombs)</option>
+      <option value="hard">Hard (24x24 / 99 bombs)</option>
+    </select>
+    <button id="restartBtn">Restart</button>
+    <button id="flagToggleBtn">Flag Mode: OFF</button>
+  </div>
+
+  <!-- INFO PANEL -->
+  <div class="info-panel">
+    <div class="info" id="bombCount">Bombs: 10</div>
+    <div class="info" id="timer">Time: 0s</div>
+  </div>
+
+  <!-- GAME CONTAINER -->
+  <div id="game-container">
+    <div id="grid"></div>
+    <!-- OVERLAY FOR WIN/LOSE MESSAGE -->
+    <div id="overlay" class="overlay">
+      <div class="overlay-message" id="overlayMessage"></div>
+      <button id="overlayButton">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    /*************************************************************
+     * BONESWEEPER (MINESWEEPER) GAME
+     * Single-file Implementation
+     * 
+     * MAIN FEATURES:
+     *   - Difficulty: easy (9x9, 10 bombs), medium (16x16, 40 bombs),
+     *     hard (24x24, 99 bombs).
+     *   - Timer: starts on first reveal.
+     *   - Bomb counter updates as flags are placed/removed.
+     *   - Right-click to flag (desktop). On mobile, toggle 'Flag Mode'.
+     *   - Flood fill for empty cells.
+     *   - Win/Lose overlay with spooky messages.
+     *   - Cleaner, simpler UI with no scoreboard or storing times.
+     *************************************************************/
+
+    /* -----------------------------------------------------------
+       GAME STATE
+       ----------------------------------------------------------- */
+    let rows = 9;
+    let cols = 9;
+    let bombsCount = 10;
+
+    let gridData = [];      // 2D array of cell objects
+    let bombsLeft = bombsCount;
+    let revealedCount = 0;
+    let totalCells = rows * cols;
+    let gameOver = false;
+
+    let timerInterval = null;
+    let timeElapsed = 0;
+    let timerStarted = false;
+
+    // For mobile-friendly flag toggling
+    let flagMode = false;
+
+    /* -----------------------------------------------------------
+       DOM ELEMENTS
+       ----------------------------------------------------------- */
+    const gridEl = document.getElementById('grid');
+    const overlayEl = document.getElementById('overlay');
+    const overlayMsgEl = document.getElementById('overlayMessage');
+    const overlayBtnEl = document.getElementById('overlayButton');
+
+    const bombCountEl = document.getElementById('bombCount');
+    const timerEl = document.getElementById('timer');
+
+    const difficultySelectEl = document.getElementById('difficultySelect');
+    const restartBtnEl = document.getElementById('restartBtn');
+    const flagToggleBtnEl = document.getElementById('flagToggleBtn');
+
+    /* -----------------------------------------------------------
+       EVENT LISTENERS
+       ----------------------------------------------------------- */
+    // Start or restart the game on difficulty change
+    difficultySelectEl.addEventListener('change', () => {
+      setDifficulty(difficultySelectEl.value);
+      initGame();
+    });
+
+    // Restart button
+    restartBtnEl.addEventListener('click', () => {
+      initGame();
+    });
+
+    // Overlay button
+    overlayBtnEl.addEventListener('click', () => {
+      hideOverlay();
+      initGame();
+    });
+
+    // Toggle flag mode (helpful for mobile)
+    flagToggleBtnEl.addEventListener('click', () => {
+      flagMode = !flagMode;
+      flagToggleBtnEl.textContent = `Flag Mode: ${flagMode ? 'ON' : 'OFF'}`;
+    });
+
+    // Prevent context menu so right-click works in desktop
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+
+    /* -----------------------------------------------------------
+       INITIAL SETUP
+       ----------------------------------------------------------- */
+    function setDifficulty(difficulty) {
+      switch(difficulty) {
+        case 'easy':
+          rows = 9; cols = 9; bombsCount = 10;
+          break;
+        case 'medium':
+          rows = 16; cols = 16; bombsCount = 40;
+          break;
+        case 'hard':
+          rows = 24; cols = 24; bombsCount = 99;
+          break;
+        default:
+          rows = 9; cols = 9; bombsCount = 10;
+      }
+    }
+
+    // Initialize the game
+    function initGame() {
+      // If there's an existing timer, clear it
+      clearInterval(timerInterval);
+      timerInterval = null;
+      timeElapsed = 0;
+      timerStarted = false;
+      timerEl.textContent = "Time: 0s";
+
+      // Reset game state
+      bombsLeft = bombsCount;
+      bombCountEl.textContent = `Bombs: ${bombsLeft}`;
+      revealedCount = 0;
+      totalCells = rows * cols;
+      gameOver = false;
+      flagMode = false;
+      flagToggleBtnEl.textContent = "Flag Mode: OFF";
+
+      // Clear overlay if visible
+      hideOverlay();
+
+      // Generate new grid data
+      gridData = generateGridData(rows, cols, bombsCount);
+
+      // Render the grid in the DOM
+      renderGrid();
+    }
+
+    /* -----------------------------------------------------------
+       GRID GENERATION
+       ----------------------------------------------------------- */
+    function generateGridData(r, c, bombs) {
+      // Step 1: Create a blank grid of objects
+      let tempGrid = [];
+      for(let i=0; i<r; i++){
+        tempGrid[i] = [];
+        for(let j=0; j<c; j++){
+          tempGrid[i][j] = {
+            row: i,
+            col: j,
+            isBomb: false,
+            isRevealed: false,
+            isFlagged: false,
+            neighborBombs: 0
+          };
+        }
+      }
+
+      // Step 2: Place bombs randomly
+      let bombsPlaced = 0;
+      while(bombsPlaced < bombs) {
+        let randRow = Math.floor(Math.random() * r);
+        let randCol = Math.floor(Math.random() * c);
+        if(!tempGrid[randRow][randCol].isBomb) {
+          tempGrid[randRow][randCol].isBomb = true;
+          bombsPlaced++;
+        }
+      }
+
+      // Step 3: Calculate neighbor bomb counts
+      for(let i=0; i<r; i++){
+        for(let j=0; j<c; j++){
+          if(!tempGrid[i][j].isBomb) {
+            tempGrid[i][j].neighborBombs = countNeighborBombs(tempGrid, i, j, r, c);
+          }
+        }
+      }
+
+      return tempGrid;
+    }
+
+    function countNeighborBombs(grid, row, col, maxR, maxC) {
+      let bombCount = 0;
+      for(let dr=-1; dr<=1; dr++){
+        for(let dc=-1; dc<=1; dc++){
+          if(dr === 0 && dc === 0) continue; // skip self
+          let nr = row + dr;
+          let nc = col + dc;
+          if(nr >= 0 && nr < maxR && nc >= 0 && nc < maxC) {
+            if(grid[nr][nc].isBomb) {
+              bombCount++;
+            }
+          }
+        }
+      }
+      return bombCount;
+    }
+
+    /* -----------------------------------------------------------
+       RENDER THE GRID
+       ----------------------------------------------------------- */
+    function renderGrid() {
+      // Clear the existing grid content
+      gridEl.innerHTML = "";
+      // Set up the CSS grid
+      gridEl.style.gridTemplateRows = `repeat(${rows}, 30px)`;
+      gridEl.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
+
+      // Create all cells
+      for(let i=0; i<rows; i++){
+        for(let j=0; j<cols; j++){
+          const cellObj = gridData[i][j];
+          const cellEl = document.createElement('div');
+          cellEl.classList.add('cell');
+          cellEl.setAttribute('data-row', i);
+          cellEl.setAttribute('data-col', j);
+
+          // Attach event listeners
+          cellEl.addEventListener('click', onCellClick);
+          cellEl.addEventListener('contextmenu', onCellRightClick);
+
+          gridEl.appendChild(cellEl);
+        }
+      }
+    }
+
+    /* -----------------------------------------------------------
+       CELL EVENTS
+       ----------------------------------------------------------- */
+    function onCellClick(e) {
+      if(gameOver) return;
+      const cellEl = e.currentTarget;
+      const row = parseInt(cellEl.getAttribute('data-row'), 10);
+      const col = parseInt(cellEl.getAttribute('data-col'), 10);
+      const cellObj = gridData[row][col];
+
+      // Start timer on first real click
+      if(!timerStarted) {
+        startTimer();
+      }
+
+      // If flag mode is ON, toggle flag
+      if(flagMode) {
+        toggleFlag(cellObj);
+        updateCellEl(cellObj, cellEl);
+        return;
+      }
+
+      // If cell is flagged or revealed, do nothing
+      if(cellObj.isFlagged || cellObj.isRevealed) {
+        return;
+      }
+
+      // Reveal the cell
+      revealCell(row, col);
+
+      // Check if we hit a bomb
+      if(cellObj.isBomb) {
+        // Game Over
+        endGame(false);
+      } else {
+        // Check for win
+        checkWinCondition();
+      }
+    }
+
+    function onCellRightClick(e) {
+      if(gameOver) return;
+      e.preventDefault(); // We already prevented the default context menu
+      if(flagMode) return; // If flag mode is ON, ignore right-click
+      const cellEl = e.currentTarget;
+      const row = parseInt(cellEl.getAttribute('data-row'), 10);
+      const col = parseInt(cellEl.getAttribute('data-col'), 10);
+      const cellObj = gridData[row][col];
+
+      // If cell is revealed, do nothing
+      if(cellObj.isRevealed) return;
+
+      // Toggle flag
+      toggleFlag(cellObj);
+      updateCellEl(cellObj, cellEl);
+    }
+
+    function toggleFlag(cellObj) {
+      if(cellObj.isRevealed) return; // Can't flag revealed
+      if(cellObj.isFlagged) {
+        cellObj.isFlagged = false;
+        bombsLeft++;
+      } else {
+        cellObj.isFlagged = true;
+        bombsLeft--;
+      }
+      bombCountEl.textContent = `Bombs: ${bombsLeft}`;
+    }
+
+    /* -----------------------------------------------------------
+       REVEAL CELLS
+       ----------------------------------------------------------- */
+    function revealCell(row, col) {
+      const cellObj = gridData[row][col];
+      if(cellObj.isFlagged || cellObj.isRevealed) return;
+      cellObj.isRevealed = true;
+      revealedCount++;
+
+      // Update the cell element
+      const index = row * cols + col;
+      const cellEl = gridEl.children[index];
+      updateCellEl(cellObj, cellEl);
+
+      // If no neighboring bombs, reveal neighbors (flood fill)
+      if(!cellObj.isBomb && cellObj.neighborBombs === 0) {
+        floodReveal(row, col);
+      }
+    }
+
+    function floodReveal(row, col) {
+      for(let dr=-1; dr<=1; dr++){
+        for(let dc=-1; dc<=1; dc++){
+          if(dr === 0 && dc === 0) continue;
+          const nr = row + dr;
+          const nc = col + dc;
+          if(nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+            const neighbor = gridData[nr][nc];
+            if(!neighbor.isBomb && !neighbor.isRevealed && !neighbor.isFlagged) {
+              revealCell(nr, nc);
+            }
+          }
+        }
+      }
+    }
+
+    /* -----------------------------------------------------------
+       UPDATE CELL ELEMENT (Styling & Content)
+       ----------------------------------------------------------- */
+    function updateCellEl(cellObj, cellEl) {
+      if(cellObj.isRevealed) {
+        cellEl.classList.add('revealed');
+        // If bomb, show bomb icon
+        if(cellObj.isBomb) {
+          cellEl.classList.add('bomb');
+        } else {
+          // Show neighbor bomb count if > 0
+          if(cellObj.neighborBombs > 0) {
+            cellEl.textContent = cellObj.neighborBombs;
+            cellEl.setAttribute('data-count', cellObj.neighborBombs);
+          }
+        }
+      } else {
+        // If not revealed, remove revealed style
+        cellEl.classList.remove('revealed');
+        cellEl.classList.remove('bomb');
+        cellEl.textContent = "";
+        cellEl.removeAttribute('data-count');
+
+        // If flagged, visually indicated by ::after pseudo
+        if(cellObj.isFlagged) {
+          cellEl.classList.add('flagged');
+        } else {
+          cellEl.classList.remove('flagged');
+        }
+      }
+    }
+
+    /* -----------------------------------------------------------
+       TIMER
+       ----------------------------------------------------------- */
+    function startTimer() {
+      timerStarted = true;
+      timeElapsed = 0;
+      timerInterval = setInterval(() => {
+        timeElapsed++;
+        timerEl.textContent = `Time: ${timeElapsed}s`;
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    /* -----------------------------------------------------------
+       CHECK WIN / LOSE
+       ----------------------------------------------------------- */
+    function checkWinCondition() {
+      // Win if revealed all non-bomb cells
+      const nonBombCells = totalCells - bombsCount;
+      if(revealedCount === nonBombCells) {
+        endGame(true);
+      }
+    }
+
+    function endGame(win) {
+      gameOver = true;
+      stopTimer();
+
+      if(win) {
+        showOverlay("YOU SURVIVED THE BONEYARD! ☠️🦴");
+      } else {
+        // Reveal all bombs
+        revealAllBombs();
+        showOverlay("DEATH AWAITS... YOU LOST. 💀");
+      }
+    }
+
+    function revealAllBombs() {
+      for(let i=0; i<rows; i++){
+        for(let j=0; j<cols; j++){
+          const cellObj = gridData[i][j];
+          if(cellObj.isBomb) {
+            cellObj.isRevealed = true;
+            const index = i * cols + j;
+            const cellEl = gridEl.children[index];
+            updateCellEl(cellObj, cellEl);
+          }
+        }
+      }
+    }
+
+    /* -----------------------------------------------------------
+       OVERLAY (WIN/LOSE MESSAGE)
+       ----------------------------------------------------------- */
+    function showOverlay(message) {
+      overlayMsgEl.textContent = message;
+      overlayEl.classList.add('show');
+    }
+    function hideOverlay() {
+      overlayEl.classList.remove('show');
+    }
+
+    /* -----------------------------------------------------------
+       START THE GAME INITIALLY
+       ----------------------------------------------------------- */
+    // Set default difficulty
+    setDifficulty(difficultySelectEl.value);
+    initGame();
+  </script>
+
+</body>
+</html>

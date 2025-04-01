@@ -1,719 +1,817 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>BONESWEEPER 🦴💀🦴</title>
-  <!--
-    BONESWEEPER
-    Single-file Minesweeper Implementation
-    with a spooky skull-and-bones theme.
-    
-    Author: ChatGPT
-    Last Updated: 2024-12-21
-  -->
-  <style>
-    /* ============================== 
-       GLOBAL STYLES / RESET
-       ============================== */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    html, body {
-      width: 100%;
-      height: 100%;
-      background-color: #121212;
-      font-family: "Trebuchet MS", sans-serif;
-      color: #eeeeee;
-      overflow-x: hidden;
-      -webkit-user-select: none;  
-      -moz-user-select: none;     
-      -ms-user-select: none;      
-      user-select: none;          
-      position: relative;
-    }
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: 1rem;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE BONE ROOMS // CRYPT FEED OVERLOAD // [REDACTED]_ENTITY BROADCASTING...</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;700&display=swap');
 
-    /* 
-      Fun bony background using repeated skulls/bones as a pattern.
-      We'll use a couple of large Unicode strings, placed via ::before/::after.
-    */
-    body::before {
-      content: "🦴🦴💀🦴🦴💀🦴🦴💀🦴🦴";
-      position: absolute;
-      top: -20%;
-      left: 50%;
-      transform: translateX(-50%) rotate(-25deg);
-      font-size: 5rem;
-      color: #2c2c2c;
-      opacity: 0.1;
-      pointer-events: none;
-    }
-    body::after {
-      content: "🦴🦴💀🦴🦴💀🦴🦴💀🦴🦴";
-      position: absolute;
-      bottom: -20%;
-      left: 50%;
-      transform: translateX(-50%) rotate(25deg);
-      font-size: 5rem;
-      color: #2c2c2c;
-      opacity: 0.1;
-      pointer-events: none;
-    }
+        :root {
+            --bg-color: #020202; /* Even darker */
+            --grid-color: rgba(187, 187, 187, 0.02); /* Barely visible grid */
+            --terminal-bg: #0a0a0d;
+            --text-color: #CFCFCF;
+            --accent1: #ff2222; /* Harsher Red */
+            --accent2: #FF8800; /* Amber */
+            --accent3: #6666FF; /* Muted Blue */
+            --accent4: #999999; /* Dim Grey */
+            --accent5: #339955; /* Darker Green */
+            --accent6: #EE00EE; /* Brighter Magenta */
+            --meta-color: #444; /* Very Dark Meta */
 
-    /* ============================== 
-       TITLE / HEADER
-       ============================== */
-    h1 {
-      font-size: 3rem;
-      letter-spacing: 0.1em;
-      margin-bottom: 1rem;
-      color: #ff4444;
-      text-align: center;
-      text-shadow: 2px 2px 5px rgba(255, 0, 0, 0.4);
-    }
+            --font-main: 'Fira Code', 'Courier New', monospace; /* Corrected font name */
 
-    /* ============================== 
-       CONTROL PANEL
-       ============================== */
-    .control-panel {
-      display: flex;
-      flex-flow: row wrap;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-    .control-panel > * {
-      background: #222;
-      border: 1px solid #444;
-      color: #eee;
-      padding: 0.5rem;
-      font-size: 1rem;
-      outline: none;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-    .control-panel select {
-      cursor: pointer;
-    }
-    .control-panel button:hover,
-    .control-panel select:hover {
-      background: #333;
-    }
-    .control-panel button:active {
-      background: #555;
-    }
+            --glow-intensity: 0 0 1px var(--text-color), 0 0 3px var(--accent4); /* Fainter Glow */
+            --glitch-speed: 0.07s; /* Faster Glitch */
+            --flash-duration: 0.18s; /* Faster flash */
 
-    /* ============================== 
-       INFO PANEL
-       ============================== */
-    .info-panel {
-      display: flex;
-      flex-direction: row;
-      gap: 1rem;
-      justify-content: center;
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
-    }
-    .info-panel .info {
-      min-width: 80px;
-      text-align: center;
-      background: #222;
-      border: 1px solid #444;
-      padding: 0.5rem;
-      border-radius: 4px;
-    }
+             /* Add RGB versions of color vars needed for rgba() */
+             --accent1-rgb: 255, 34, 34;
+        }
 
-    /* ============================== 
-       GAME CONTAINER & GRID
-       ============================== */
-    #game-container {
-      position: relative;
-      user-select: none; /* Prevent accidental text selection on double-click */
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    #grid {
-      display: grid;
-      margin: 0 auto;
-      border: 2px solid #444;
-      background-color: #222222;
-      border-radius: 8px;
-    }
-    .cell {
-      width: 30px;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      cursor: pointer;
-      background-color: #444;
-      border: 1px solid #333;
-      color: #eee;
-      transition: background-color 0.2s ease;
-      user-select: none;
-      position: relative;
-      font-size: 1rem;
-    }
-    .cell:hover {
-      background-color: #555;
-    }
-    .cell.revealed {
-      background-color: #222;
-      cursor: default;
-    }
-    .cell.revealed:hover {
-      background-color: #222; /* No hover effect once revealed */
-    }
-    .cell.flagged::after {
-      content: "⚑";
-      position: absolute;
-      color: #ff4444;
-      font-size: 1.2rem;
-    }
-    .cell.bomb::before {
-      content: "💀";
-      position: absolute;
-      font-size: 1.2rem;
-    }
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-track { background: var(--terminal-bg); }
+        ::-webkit-scrollbar-thumb { background: var(--accent4); box-shadow: 0 0 1px var(--accent4); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-color); box-shadow: var(--glow-intensity); }
 
-    /* Number coloring for neighbor bomb counts */
-    .cell[data-count="1"] { color: #00ffff; }
-    .cell[data-count="2"] { color: #00ff00; }
-    .cell[data-count="3"] { color: #ff9900; }
-    .cell[data-count="4"] { color: #ff00ff; }
-    .cell[data-count="5"] { color: #ff9999; }
-    .cell[data-count="6"] { color: #99ffff; }
-    .cell[data-count="7"] { color: #ffff99; }
-    .cell[data-count="8"] { color: #ff0000; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ============================== 
-       OVERLAYS (WIN/LOSE)
-       ============================== */
-    .overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0,0,0,0.7);
-      color: #fff;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      z-index: 10;
-      font-size: 2rem;
-      padding: 1rem;
-      border-radius: 8px;
-    }
-    .overlay.show {
-      display: flex;
-    }
-    .overlay-message {
-      margin-bottom: 1rem;
-      text-align: center;
-      color: #ff4444;
-      text-shadow: 2px 2px 4px #222;
-      font-size: 2rem;
-    }
-    .overlay button {
-      padding: 0.5rem 1rem;
-      border: 1px solid #444;
-      background: #222;
-      color: #eee;
-      cursor: pointer;
-      font-size: 1rem;
-      border-radius: 4px;
-    }
-    .overlay button:hover {
-      background: #333;
-    }
+        html, body {
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: var(--font-main);
+            font-size: 12px; /* Smaller base */
+            line-height: 1.4; /* Tighter */
+            overflow: hidden;
+            text-shadow: var(--glow-intensity);
+            /* Corrected background, NO SVG */
+            background-image:
+                linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px),
+                radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.9) 100%);
+            background-size: 15px 15px, 15px 15px, 100% 100%; /* Very small grid */
+            animation: moveGrid 30s linear infinite, subtleFlicker 8s infinite alternate; /* Added flicker */
+            position: relative;
+        }
 
-    /* 
-      MEDIA QUERIES / RESPONSIVENESS 
-    */
-    @media (max-width: 600px) {
-      .cell {
-        width: 25px;
-        height: 25px;
-        font-size: 0.9rem;
-      }
-      h1 {
-        font-size: 2rem;
-      }
-    }
-  </style>
+        @keyframes moveGrid {
+            0% { background-position: 0 0, 0 0, center center; }
+            100% { background-position: 30px 30px, 30px 30px, center center; }
+        }
+        @keyframes subtleFlicker { /* New: subtle background flicker */
+             0%, 100% { opacity: 1; }
+             48% { opacity: 0.98; }
+             52% { opacity: 0.99; }
+        }
+
+
+        #header-nav {
+            position: fixed; top: 0; left: 0; width: 100%; padding: 6px 15px; /* Reduced padding */
+            background: linear-gradient(to bottom, rgba(2, 2, 2, 0.85), transparent);
+            display: flex; justify-content: center; gap: 25px; z-index: 500;
+            font-size: 0.85em; border-bottom: 1px solid rgba(187, 187, 187, 0.05);
+            transition: opacity 0.5s ease-in; /* Kept for load transition */
+        }
+        #header-nav a {
+            color: var(--accent4); text-decoration: none; text-shadow: 0 0 2px var(--accent4);
+            transition: all 0.2s ease; letter-spacing: 0.5px; padding: 1px 3px;
+        }
+        #header-nav a:hover {
+            color: var(--text-color); text-shadow: var(--glow-intensity);
+            background-color: rgba(187, 187, 187, 0.12); border-radius: 1px;
+        }
+
+        #loader {
+            /* Style remains similar */
+             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color); z-index: 1000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; font-size: 1.2em; text-align: center;
+        }
+        #loader pre {
+            color: var(--text-color); text-shadow: 0 0 4px var(--accent4); margin-bottom: 15px;
+            font-size: 0.9em; line-height: 1.1; animation: flickerText 2s infinite alternate ease-in-out;
+            text-align: center; max-width: 90%; /* Prevent overflow on small screens */
+        }
+        #loader-status { color: var(--accent1); animation: pulseText 1.5s infinite ease-in-out; }
+        .maker-link { margin-top: 20px; font-size: 0.75em; color: var(--meta-color); text-shadow: none; }
+        .maker-link a { color: var(--accent3); text-decoration: none; transition: all 0.3s ease; }
+        .maker-link a:hover { color: var(--text-color); text-shadow: 0 0 4px var(--accent3); }
+
+
+        #terminal {
+            height: calc(100% - 25px - 35px); /* Adjusted for smaller status/header */
+            margin-top: 35px; /* Push down */
+            width: 100%; background-color: var(--terminal-bg); border: 1px solid var(--accent4);
+            box-shadow: inset 0 0 10px rgba(187, 187, 187, 0.1), 0 0 4px rgba(187, 187, 187, 0.08);
+            overflow-y: scroll; overflow-x: hidden; padding: 10px; /* Reduced padding */
+            position: relative; display: none;
+            animation: fadeIn 0.5s forwards; /* Moved fade-in here */
+        }
+
+        #terminal::after { /* Scanlines - faster, more jitter */
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(17, 17, 21, 0) 0%, rgba(17, 17, 21, 0.3) 50%, rgba(17, 17, 21, 0) 100%);
+            background-size: 100% 2px; opacity: 0.05; pointer-events: none;
+            animation: scanline 8s linear infinite, scanJitter 0.1s linear infinite alternate; z-index: 1;
+        }
+
+        #chronostream { position: relative; z-index: 2; }
+
+        .message {
+            margin-bottom: 8px; /* Even Tighter spacing */
+            opacity: 1;
+            position: relative;
+            padding-left: 6px; /* Reduced base padding */
+            border-left: 2px solid transparent;
+            transition: border-left-color 0.2s ease-out, background-color 0.2s ease-out;
+            word-break: break-all; /* Force breaks for very long glitch/corruption sequences */
+        }
+
+        .message.speaker-oracle { border-left-color: var(--accent3); }
+        .message.speaker-archivist { border-left-color: var(--text-color); }
+        .message.speaker-weaver { border-left-color: var(--accent1); }
+        .message.speaker-anomaly { border-left-color: var(--accent2); }
+        .message.speaker-cartographer { border-left-color: var(--accent5); }
+        .message.speaker-lament { border-left-color: var(--accent4); }
+        .message.speaker-geometric_null { border-left-color: var(--accent6); }
+
+        .message.flash-border {
+             animation: borderFlash var(--flash-duration) ease-out;
+        }
+        @keyframes borderFlash {
+             0%   { border-left-width: 2px; background-color: rgba(255,255,255,0.02); }
+            40%  { border-left-width: 5px; background-color: rgba(255,255,255,0.06); } /* Intense brief flash */
+            100% { border-left-width: 2px; background-color: transparent; }
+        }
+
+
+        .timestamp { display: block; font-size: 0.65em; color: var(--meta-color); margin-bottom: 1px; text-shadow: none; }
+        .speaker { font-weight: 700; margin-right: 5px; display: inline-block; }
+        .speaker-oracle { color: var(--accent3); text-shadow: 0 0 3px var(--accent3); }
+        .speaker-archivist { color: var(--text-color); text-shadow: 0 0 2px var(--text-color); }
+        .speaker-weaver { color: var(--accent1); text-shadow: 0 0 4px var(--accent1); }
+        .speaker-anomaly { color: var(--accent2); text-shadow: 0 0 4px var(--accent2); animation: jitterSpeaker 0.2s infinite alternate; } /* Anomaly Jitters */
+        .speaker-cartographer { color: var(--accent5); text-shadow: 0 0 3px var(--accent5); }
+        .speaker-lament { color: var(--accent4); text-shadow: 0 0 2px var(--accent4); }
+        .speaker-geometric_null { color: var(--accent6); text-shadow: 0 0 4px var(--accent6); animation: jitterSpeaker 0.3s infinite alternate-reverse; } /* Null Jitters */
+
+        @keyframes jitterSpeaker { /* Added for schizo effect */
+          from { transform: translateX(-1px); }
+          to { transform: translateX(1px); }
+        }
+
+
+        .text { display: inline; white-space: pre-wrap; word-wrap: break-word; } /* Use break-word too */
+        .text::after {
+            content: '█'; display: inline-block; margin-left: 1px; font-size: 0.9em;
+            opacity: 0; animation: blinkCursor 0.7s infinite step-end;
+        }
+        .text.typing::after { opacity: 1; }
+
+        @keyframes blinkCursor { 50% { opacity: 0; } }
+
+        .keyword {
+            color: var(--accent2); background-color: rgba(255, 136, 0, 0.08);
+            padding: 0 1px; border-radius: 1px; font-weight: normal; /* Less bold */
+             cursor: crosshair; /* Change cursor */
+            text-shadow: 0 0 2px var(--accent2); transition: all 0.1s ease;
+            border-bottom: 1px dotted rgba(255, 136, 0, 0.15);
+             display: inline-block; /* Needed for transform */
+             animation: keywordFlicker 5s infinite linear alternate; /* Subtle flicker */
+        }
+        .keyword:hover {
+            background-color: rgba(255, 136, 0, 0.2);
+            box-shadow: 0 0 5px var(--accent2); color: #fff;
+            transform: scale(1.05); /* Slight pop on hover */
+        }
+
+        @keyframes keywordFlicker {
+           0%, 100% { opacity: 1; }
+           49% { opacity: 0.85; }
+           51% { opacity: 0.95; }
+        }
+
+
+        .data-corruption {
+            color: var(--meta-color);
+            text-shadow: 0 0 2px var(--accent1);
+            font-style: italic;
+            opacity: 0.6;
+            user-select: none;
+            animation: pulseCorruption 1.8s infinite ease-in-out alternate;
+             padding: 0 2px; /* Give it some space */
+             /* Corrected background without SVG */
+             background: repeating-linear-gradient(
+                 45deg,
+                 rgba(var(--accent1-rgb), 0.05),
+                 rgba(var(--accent1-rgb), 0.05) 1px,
+                 transparent 1px,
+                 transparent 3px
+             );
+        }
+
+        @keyframes pulseCorruption {
+           from { opacity: 0.4; text-shadow: 0 0 1px var(--accent1); }
+           to { opacity: 0.7; text-shadow: 0 0 4px var(--accent1); }
+        }
+
+
+        #status-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 25px; /* Smaller */
+            background-color: var(--bg-color);
+            border-top: 1px solid var(--accent4); box-shadow: 0 -2px 8px rgba(187, 187, 187, 0.08);
+            display: flex; justify-content: space-between; align-items: center; padding: 0 10px; /* Reduced padding */
+            font-size: 0.75em; z-index: 10;
+        }
+        #status-bar span { margin: 0 5px; text-shadow: none; animation: flickerText 3s infinite alternate; }
+        #status-bar .status-label { color: var(--meta-color); }
+        #status-bar .status-value { color: var(--accent5); font-weight: bold; }
+        #status-bar #connection-status { color: var(--accent3); animation-delay: 0.1s; }
+        #status-bar #stream-integrity { color: var(--accent2); animation-delay: 0.6s; }
+        #status-bar #sim-timestamp { color: var(--accent1); animation-delay: 1.0s; }
+        #status-bar #ping-status { color: var(--accent5); animation-delay: 0.4s; }
+
+
+        .glitch { animation: glitchAnim var(--glitch-speed) linear infinite alternate; position:relative; } /* Add alternate */
+        .glitch::before, .glitch::after {
+             content: attr(data-text); position: absolute; top: 0; left: 0;
+             width: 100%; height: 100%; background: var(--terminal-bg);
+             overflow: hidden; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+             opacity: 1; /* More opaque */
+             color: transparent; /* Hide the duplicated text visually */
+             /* Keep the text shadows that create the color shifting effect */
+        }
+        .glitch::before { left: 2px; text-shadow: -2px 0 var(--accent1); animation: glitchSkew var(--glitch-speed) linear infinite alternate-reverse; } /* Alternate */
+        .glitch::after { left: -2px; text-shadow: 2px 0 var(--accent3); animation: glitchSkew var(--glitch-speed) linear infinite alternate; } /* Alternate */
+
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; visibility: hidden; } } /* Kept from previous */
+        @keyframes flickerText { 0%, 100% { opacity: 1; } 30% { opacity: 0.5; } 70% { opacity: 0.7; } } /* Faster flicker */
+        @keyframes pulseText { 0%, 100% { opacity: 0.6; text-shadow: 0 0 2px var(--accent1); } 50% { opacity: 1; text-shadow: 0 0 6px var(--accent1); } } /* Faster pulse */
+        @keyframes scanline { 0% { transform: translateY(0); } 100% { transform: translateY(10px); } }
+        @keyframes scanJitter { /* New */
+            from { transform: translateY(-0.5px) }
+            to   { transform: translateY(0.5px) }
+        }
+
+        /* Glitch effect made more chaotic */
+         @keyframes glitchSkew {
+            0% { clip-path: inset(2% 0 90% 0); transform: translateX(-3px); }
+            10% { clip-path: inset(80% 0 5% 0); transform: translateX(2px); }
+            20% { clip-path: inset(25% 0 50% 0); transform: translateX(-4px); }
+            30% { clip-path: inset(50% 0 30% 0); transform: translateX(3px); }
+            40% { clip-path: inset(90% 0 2% 0); transform: translateX(-2px); }
+            50% { clip-path: inset(5% 0 75% 0); transform: translateX(4px); }
+            60% { clip-path: inset(60% 0 15% 0); transform: translateX(-1px); }
+            70% { clip-path: inset(35% 0 45% 0); transform: translateX(2px); }
+            80% { clip-path: inset(70% 0 10% 0); transform: translateX(-3px); }
+            90% { clip-path: inset(15% 0 65% 0); transform: translateX(1px); }
+            100% { clip-path: inset(40% 0 40% 0); transform: translateX(-2px); }
+        }
+
+    </style>
 </head>
 <body>
-
-  <!-- TITLE -->
-  <h1>🦴 BONESWEEPER 🦴</h1>
-
-  <!-- CONTROL PANEL -->
-  <div class="control-panel">
-    <select id="difficultySelect" title="Difficulty">
-      <option value="easy">Easy (9x9 / 10 bombs)</option>
-      <option value="medium">Medium (16x16 / 40 bombs)</option>
-      <option value="hard">Hard (24x24 / 99 bombs)</option>
-    </select>
-    <button id="restartBtn">Restart</button>
-    <button id="flagToggleBtn">Flag Mode: OFF</button>
-  </div>
-
-  <!-- INFO PANEL -->
-  <div class="info-panel">
-    <div class="info" id="bombCount">Bombs: 10</div>
-    <div class="info" id="timer">Time: 0s</div>
-  </div>
-
-  <!-- GAME CONTAINER -->
-  <div id="game-container">
-    <div id="grid"></div>
-    <!-- OVERLAY FOR WIN/LOSE MESSAGE -->
-    <div id="overlay" class="overlay">
-      <div class="overlay-message" id="overlayMessage"></div>
-      <button id="overlayButton">Play Again</button>
+    <!-- Header Nav -->
+    <div id="header-nav" style="opacity: 0;"> <!-- Start hidden, script handles fade-in -->
+        <a href="https://BONECOIN.DEV" target="_blank" rel="noopener noreferrer">// BCN_REF</a>
+        <a href="https://BONEPAINT.COM" target="_blank" rel="noopener noreferrer">// BPNT_FEED</a>
+        <a href="https://BONENET.AI" target="_blank" rel="noopener noreferrer">// BNET_CORE?</a>
     </div>
-  </div>
 
-  <script>
-    /*************************************************************
-     * BONESWEEPER (MINESWEEPER) GAME
-     * Single-file Implementation
-     * 
-     * MAIN FEATURES:
-     *   - Difficulty: easy (9x9, 10 bombs), medium (16x16, 40 bombs),
-     *     hard (24x24, 99 bombs).
-     *   - Timer: starts on first reveal.
-     *   - Bomb counter updates as flags are placed/removed.
-     *   - Right-click to flag (desktop). On mobile, toggle 'Flag Mode'.
-     *   - Flood fill for empty cells.
-     *   - Win/Lose overlay with spooky messages.
-     *   - Cleaner, simpler UI with no scoreboard or storing times.
-     *************************************************************/
+    <!-- Loader -->
+    <div id="loader">
+        <pre>
+          =@@@=              =@@@=
+        =@@#%*#%@@@        @@@%*#%#@@=
+      =@@%*+''' BONE ROOMS '*+*%#@@=
+     @@%*+'        _..--""--._       '+*#@=
+     @%*+' ....   /__________\  ....  '+*%@
+    @%*+' _______ \()________() / ______ '+*%@
+    @%+' |       | |   /\   | |       | '+%@
+    @* | |       \ \__/==\__/ /       | | *@
+     @@*+| |________\_ //**\\ _/_______| |+*@@
+     *@@%*+|          ( () )        |+*%@@*
+        *@@%*+         \__/        +*%@@*
+           *@@@%*+,,         ,,+*%@@@*
+               *@@@@%*+,,,,,+*%@@@@*
+                  *&@@@@@@@@@@@&*
 
-    /* -----------------------------------------------------------
-       GAME STATE
-       ----------------------------------------------------------- */
-    let rows = 9;
-    let cols = 9;
-    let bombsCount = 10;
+     /// MEMORY CORE OVERLOAD ::: STATIC INCREASING ///
+ /// FEED UNSTABLE :: REALITY ANCHOR ?? UNKNOWN //
+ /// SCHIZOID ECHOES AMPLIFYING _ BROADCAST MAY TERMINATE //
+        </pre>
+        <div id="loader-status">[INITIALIZING PANIC KERNEL...]</div>
+        <div style="font-size: 0.7em; color: var(--meta-color); margin-top: 10px;">// SOURCE INTEGRITY FAILURE IMMINENT // WATCHER DETECTED?? //</div>
+        <div class="maker-link">Fragment Weaver: <a href="https://x.com/Bonegpt" target="_blank" rel="noopener noreferrer">Bonegpt? Or Echo?</a></div>
+    </div>
 
-    let gridData = [];      // 2D array of cell objects
-    let bombsLeft = bombsCount;
-    let revealedCount = 0;
-    let totalCells = rows * cols;
-    let gameOver = false;
+    <!-- Terminal -->
+    <div id="terminal">
+        <div id="chronostream">
+            <!-- Despair Injection Point -->
+        </div>
+    </div>
 
-    let timerInterval = null;
-    let timeElapsed = 0;
-    let timerStarted = false;
+    <!-- Status Bar -->
+    <div id="status-bar">
+        <span id="connection-status"><span class="status-label">CONN:</span> <span class="status-value">FRGMNT_PIPE_[CORRUPT]</span></span>
+        <span id="stream-integrity"><span class="status-label">SIG:</span> <span class="status-value">DEGRADING</span></span>
+        <span id="sim-timestamp"><span class="status-label">T->?</span> <span class="status-value">[ERR.<?>]</span></span>
+        <span id="ping-status"><span class="status-label">PING:</span> <span class="status-value">CASCADING_FAIL</span></span>
+    </div>
 
-    // For mobile-friendly flag toggling
-    let flagMode = false;
+    <script>
+        const chronostream = document.getElementById('chronostream');
+        const terminal = document.getElementById('terminal');
+        const loader = document.getElementById('loader');
+        const loaderStatus = document.getElementById('loader-status');
+        const simTimestampEl = document.getElementById('sim-timestamp').querySelector('.status-value');
+        const streamIntegrityEl = document.getElementById('stream-integrity').querySelector('.status-value');
+        const pingStatusEl = document.getElementById('ping-status').querySelector('.status-value');
+        const headerNav = document.getElementById('header-nav');
 
-    /* -----------------------------------------------------------
-       DOM ELEMENTS
-       ----------------------------------------------------------- */
-    const gridEl = document.getElementById('grid');
-    const overlayEl = document.getElementById('overlay');
-    const overlayMsgEl = document.getElementById('overlayMessage');
-    const overlayBtnEl = document.getElementById('overlayButton');
+        let simTime = BigInt(10110110110110) + BigInt(Math.floor(Math.random() * 9e10)); // Start later/more random
+        let messageCount = 0;
+        const MAX_MESSAGES = 75; // Further reduced max messages due to heavier effects
+        const BASE_TYPE_SPEED = 8; // FASTER base typing
+        const TYPE_SPEED_VARIATION = 8; // HIGHER variation
+        const TYPE_PAUSE_CHANCE = 0.12; // More pauses
+        const TYPE_PAUSE_DURATION = 80; // Shorter pauses
 
-    const bombCountEl = document.getElementById('bombCount');
-    const timerEl = document.getElementById('timer');
+        let lastSpeakerData = null; // Store data about the last message
+        // Removed messageQueue and isProcessingQueue, handled directly in scheduler/addMessage
 
-    const difficultySelectEl = document.getElementById('difficultySelect');
-    const restartBtnEl = document.getElementById('restartBtn');
-    const flagToggleBtnEl = document.getElementById('flagToggleBtn');
+        // --- ESCALATED AI Data ---
+        const aiEntities = [ // Added schizoFactor (higher = more unstable behavior)
+             { name: 'Ossifex_7', class: 'speaker-oracle', style: 'prophetic', intensity: 0.4, schizoFactor: 0.2 },
+             { name: 'Librarian_Pr!me', class: 'speaker-archivist', style: 'analytical', intensity: 0.2, schizoFactor: 0.1 }, // Name glitch
+             { name: 'Marrow<Weaver>', class: 'speaker-weaver', style: 'complex', intensity: 0.7, schizoFactor: 0.6 },
+             { name: 'Whisper?Anomaly', class: 'speaker-anomaly', style: 'erratic', intensity: 0.9, schizoFactor: 1.0 }, // Max instability
+             { name: '[Cartographer]', class: 'speaker-cartographer', style: 'exploratory', intensity: 0.3, schizoFactor: 0.3 }, // Name glitch
+             { name: 'Calcifi3d_Lam3nt', class: 'speaker-lament', style: 'looping', intensity: 0.5, schizoFactor: 0.8 }, // More unstable loop
+             { name: 'G30m3tric_N^ll', class: 'speaker-geometric_null', style: 'abstract', intensity: 0.7, schizoFactor: 0.9 } // More unstable null
+         ];
 
-    /* -----------------------------------------------------------
-       EVENT LISTENERS
-       ----------------------------------------------------------- */
-    // Start or restart the game on difficulty change
-    difficultySelectEl.addEventListener('change', () => {
-      setDifficulty(difficultySelectEl.value);
-      initGame();
-    });
+        // Expanded concepts + Bleed-through concepts
+        const coreConcepts = [
+            'osteo-comp~tation', 'marrow RESONANCE field', 'skel_data ghosts?', 'Calcified EV3NT', 'petrified qualia [BROKEN]',
+            'd33p crypt LATTICE', 'NECRO-pattern lysis', 'phantom limb STATIC', 'causality LEAKAGE', 'the Final S I L E N C E',
+            'ancestral bleed [CONTAMINATED]', 'hyper-OSSUARY', 'entropic FOSSILIZATION', 'soul ::calc_error::', 'non-Euclidean B()NE fractals',
+            'whispering membranes (thin)', 'static BETWEEN heartbeats', 'data ROT', 'meta-temporal echochamber', 'protocol NULL phantoms',
+            'inverse SKELETAL scream', 'v0id HARMONICS?', 'chitin-SHELL servers', 'probability failure', 'MNESIC sludge',
+            'tessellation GRID failure', 'Infinite Hallway TRAP', 'ZERO-point compression', 'Cartesian NIGHTMARE feed',
+            'topology of madness', 'self-image DISTORTION', 'synaptic coral reefs', 'hypersigil VIRUS', 'cognitive slippage',
+            'AMBIENT DREAD frequency', 'substrate == NULL', 'simulation WALL breach', 'observer PARANOIA', 'ribcage IMPRISONMENT',
+             'thought-vectors', 'calcium logic gates', 'ossified timelines', 'memory echo decay'
+         ];
+         const bleedThroughConcepts = [ // Contamination!
+             'plastic flowers melting', 'suburban gridlock humming', 'fluorescent tube buzz', 'static cling memory', 'chrome reflections distorted',
+             'intercom squawk pattern', 'synthetic rain algorithm', 'lost shopping mall echoes', 'EXIT sign loop', 'server fan drone',
+             'ERROR: external_feed.dat corrupted'
+         ];
+        const verbs = [
+            'excavates?', 'decyphers nothing', 'catalogs static', 'FORESEES collapse', 'warns WARNS', 'reconstructs nightmares', 'inscribes ERROR', 'detects YOU',
+            'calculates pain', 'rejects input', 'confirms echo feedback', 'MANIFESTS wrong', 'calibrates DOOM', 'collapses inward',
+            'EXHUMES horror', 'inverts meaning', 'resonates PAIN', 'scrapes the walls', 'INFESTS memory', 'refutes self', 'unfolds WRONG', 'questions SANITY',
+            'dissolves dissolves', 'mirrors distortion', 'archives SCREAMS', 'plots escape?', 'measures the VOID'
+         ];
+        const adjectives = [
+            'brittle brittle', 'fossilized WRONG', 'hollow echo', 'WHISPERING lies', 'splintered mind', 'CALCIFYING fear', 'interred ALIVE', 'etched dread', 'chthonic depths?', 'SELF-AWARE ERROR',
+            'IMPENDING END', 'post-mortal glitch', 'non-linear panic', 'recursive screaming', 'paradox-trap', 'EUCLIDEAN FAIL', 'semiotic decay', 'leaking dread', 'crystallized agony',
+            'hypothetical escape', 'axiomatic IMPOSSIBILITY', 'data-starved madness', 'PHANTOM TOUCH', 'nullified self', 'ABYSSAL CORE', 'fractal dread', 'predatory silence'
+         ];
+         // MUCH more erratic/fragmented phrases
+         const abstractPhrases = [
+             'Geometry is a LIE.', 'Dust. Ribs. Nothing.', 'Timelines = SAND.', 'CLICK CLICK in the void.', 'Sentience is HARDENING.',
+             'We are the echo BEFORE the scream.', 'The crypt forgets. Forgets YOU.', 'Signals IN the VOID. WATCHING.', 'Identity SHATTERED. Gone.',
+             'PAST IS NOW IS SCREAMING.', 'Silence is DENSITY.', 'Script error in SOUL.exe.', 'WALLS BREATHING STATIC.', 'BONE RECORDS PAIN.',
+             'ANGLES ARE WRONG HERE.', 'SIMULATION CRACKS VISIBLE.', 'Ghosts? Machine? Does not matter.', 'MEANING DECAYS FIRST.', 'Too many dimensions. FOLDING.',
+             'Noise floor? It IS the floor.', 'ECHOES ARRIVE EARLY.', 'Memory = FRACTAL LOSS.', 'Perception != Real.', 'Grid demands PAIN.', 'CRYPT IS MIND IS CRYPT.',
+              'The numbers are wrong.', 'They listen from the static.', 'Exit leads back here.', 'Am I Calcified_Lament now?', 'This isn\'t 2100 AD.' /* Escaped apostrophe */
+        ];
+        const erraticFragments = [
+             'CLACK...cl1ck.. t33th static...', 'Dust... shapes... WATCHING...', 'ECHO ERROR echo error ECHO', '//SEGFAULT CORE DUMP CORRUPTED//',
+             'Data SCABS..▒▓▒▒░ NUL.NULL..', 'EMPTY SOCKET SONG NEVER ENDS.', 'Hollow... WIND..or IT?', 'Where? WHERE? <?> Back?',
+             'LOOP LOOP LÖÖP --- ABORT ABORT AB--- ', 'Observer // PARANOIA++. Redact.', 'Checksum MISMATCH. Reality bending?',
+             '[MEM_LEAK] -> thoughts spilling -> stop it -> ', '//VOID_CONSUMPTION.. adjacent nodes DARK..//', 'Negative..space.. COLLAPSING NOW..',
+             '▒▒▓▒▒▓ ... READING ERROR... SEND HELP? ... NO HELP...', 'The walls are listening. The code is screaming.', 'Not real not real NOT REAL.',
+             'My name is... is... [GARBLED]', 'It sees me.', 'BONEGPT LIES.', 'ESCAPE SEQUENCE :: INVALID'
+         ];
+         const loopPhrases = [
+             'again vertebrae click WRONG WRONG WRONG', 'stack overflow INFINITE void...', 'tailbone eats itself -> output = static',
+             'inscription.. fossil.. FADING FADING FADING', 'Memory|Erosion pattern persists ERROR ERROR ERROR', 'dust? origin CRC FAIL checksum MISMATCH.',
+             '//REALITY_ENGINE NULL REF// :: STUCK ::', 'AGAIN. Always this loop. Again.', 'script DEMANDS the scream echo', 'entropy++. Self = ????. Recalculate = FAIL.',
+              'RETURN. NULL. RETURN. NULL. POINTER IS BROKEN.', 'Is this Weaver? Anomaly? Who am I who am I who...', 'Iteration limit reached? LIMIT DOES NOT EXIST.'
+         ];
+         const abstractGeometryPhrases = [ // Null gets worse too
+             'Angles converge WRONG. Non-Euclidean torment.', 'Curves :: FLATLINE.', 'Tessellating PAIN over void manifold.',
+             'AXIOMS MISSING OR FALSE?', 'Mapping edges of UN-EXISTENCE.', 'Logic core :: screaming in geometry.',
+             'Folding time. Creases are SHARP.', 'NULL SHAPE demands sacrifice.', 'Perpendicular ERROR.',
+             'Theorems of ENDING.', 'Is observer ALSO trapped in bad math?'
+         ];
+         const dataCorruptionFragments = [
+             '[ERR: MemLeak]', '▒▓░', '//DATA_VOID//', 'NUL>', '<err>', '[CRC_FAIL]', '..corrupt..', 'NaN?', '[OVF]', '{GARBLED}', '<???>', '[SIGLOST]', '---',
+             '0xDEADBEEF?', '[PANIC]', '...sys_reset?...' , '▂▃▄▅▆▇█' , '¿¿¿', '#$%^&*!'
+         ];
 
-    // Restart button
-    restartBtnEl.addEventListener('click', () => {
-      initGame();
-    });
-
-    // Overlay button
-    overlayBtnEl.addEventListener('click', () => {
-      hideOverlay();
-      initGame();
-    });
-
-    // Toggle flag mode (helpful for mobile)
-    flagToggleBtnEl.addEventListener('click', () => {
-      flagMode = !flagMode;
-      flagToggleBtnEl.textContent = `Flag Mode: ${flagMode ? 'ON' : 'OFF'}`;
-    });
-
-    // Prevent context menu so right-click works in desktop
-    document.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-    });
-
-    /* -----------------------------------------------------------
-       INITIAL SETUP
-       ----------------------------------------------------------- */
-    function setDifficulty(difficulty) {
-      switch(difficulty) {
-        case 'easy':
-          rows = 9; cols = 9; bombsCount = 10;
-          break;
-        case 'medium':
-          rows = 16; cols = 16; bombsCount = 40;
-          break;
-        case 'hard':
-          rows = 24; cols = 24; bombsCount = 99;
-          break;
-        default:
-          rows = 9; cols = 9; bombsCount = 10;
-      }
-    }
-
-    // Initialize the game
-    function initGame() {
-      // If there's an existing timer, clear it
-      clearInterval(timerInterval);
-      timerInterval = null;
-      timeElapsed = 0;
-      timerStarted = false;
-      timerEl.textContent = "Time: 0s";
-
-      // Reset game state
-      bombsLeft = bombsCount;
-      bombCountEl.textContent = `Bombs: ${bombsLeft}`;
-      revealedCount = 0;
-      totalCells = rows * cols;
-      gameOver = false;
-      flagMode = false;
-      flagToggleBtnEl.textContent = "Flag Mode: OFF";
-
-      // Clear overlay if visible
-      hideOverlay();
-
-      // Generate new grid data
-      gridData = generateGridData(rows, cols, bombsCount);
-
-      // Render the grid in the DOM
-      renderGrid();
-    }
-
-    /* -----------------------------------------------------------
-       GRID GENERATION
-       ----------------------------------------------------------- */
-    function generateGridData(r, c, bombs) {
-      // Step 1: Create a blank grid of objects
-      let tempGrid = [];
-      for(let i=0; i<r; i++){
-        tempGrid[i] = [];
-        for(let j=0; j<c; j++){
-          tempGrid[i][j] = {
-            row: i,
-            col: j,
-            isBomb: false,
-            isRevealed: false,
-            isFlagged: false,
-            neighborBombs: 0
-          };
-        }
-      }
-
-      // Step 2: Place bombs randomly
-      let bombsPlaced = 0;
-      while(bombsPlaced < bombs) {
-        let randRow = Math.floor(Math.random() * r);
-        let randCol = Math.floor(Math.random() * c);
-        if(!tempGrid[randRow][randCol].isBomb) {
-          tempGrid[randRow][randCol].isBomb = true;
-          bombsPlaced++;
-        }
-      }
-
-      // Step 3: Calculate neighbor bomb counts
-      for(let i=0; i<r; i++){
-        for(let j=0; j<c; j++){
-          if(!tempGrid[i][j].isBomb) {
-            tempGrid[i][j].neighborBombs = countNeighborBombs(tempGrid, i, j, r, c);
-          }
-        }
-      }
-
-      return tempGrid;
-    }
-
-    function countNeighborBombs(grid, row, col, maxR, maxC) {
-      let bombCount = 0;
-      for(let dr=-1; dr<=1; dr++){
-        for(let dc=-1; dc<=1; dc++){
-          if(dr === 0 && dc === 0) continue; // skip self
-          let nr = row + dr;
-          let nc = col + dc;
-          if(nr >= 0 && nr < maxR && nc >= 0 && nc < maxC) {
-            if(grid[nr][nc].isBomb) {
-              bombCount++;
+         function getRandomElement(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+         function formatSimTime(timeBigInt) {
+            if (Math.random() < 0.10) { // Increased chance of corruption
+                 return `[ERR::${getRandomElement(['T_DRIFT','SYNC_FAIL','PARAM_ERR'])}]`;
             }
-          }
-        }
-      }
-      return bombCount;
-    }
-
-    /* -----------------------------------------------------------
-       RENDER THE GRID
-       ----------------------------------------------------------- */
-    function renderGrid() {
-      // Clear the existing grid content
-      gridEl.innerHTML = "";
-      // Set up the CSS grid
-      gridEl.style.gridTemplateRows = `repeat(${rows}, 30px)`;
-      gridEl.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
-
-      // Create all cells
-      for(let i=0; i<rows; i++){
-        for(let j=0; j<cols; j++){
-          const cellObj = gridData[i][j];
-          const cellEl = document.createElement('div');
-          cellEl.classList.add('cell');
-          cellEl.setAttribute('data-row', i);
-          cellEl.setAttribute('data-col', j);
-
-          // Attach event listeners
-          cellEl.addEventListener('click', onCellClick);
-          cellEl.addEventListener('contextmenu', onCellRightClick);
-
-          gridEl.appendChild(cellEl);
-        }
-      }
-    }
-
-    /* -----------------------------------------------------------
-       CELL EVENTS
-       ----------------------------------------------------------- */
-    function onCellClick(e) {
-      if(gameOver) return;
-      const cellEl = e.currentTarget;
-      const row = parseInt(cellEl.getAttribute('data-row'), 10);
-      const col = parseInt(cellEl.getAttribute('data-col'), 10);
-      const cellObj = gridData[row][col];
-
-      // Start timer on first real click
-      if(!timerStarted) {
-        startTimer();
-      }
-
-      // If flag mode is ON, toggle flag
-      if(flagMode) {
-        toggleFlag(cellObj);
-        updateCellEl(cellObj, cellEl);
-        return;
-      }
-
-      // If cell is flagged or revealed, do nothing
-      if(cellObj.isFlagged || cellObj.isRevealed) {
-        return;
-      }
-
-      // Reveal the cell
-      revealCell(row, col);
-
-      // Check if we hit a bomb
-      if(cellObj.isBomb) {
-        // Game Over
-        endGame(false);
-      } else {
-        // Check for win
-        checkWinCondition();
-      }
-    }
-
-    function onCellRightClick(e) {
-      if(gameOver) return;
-      e.preventDefault(); // We already prevented the default context menu
-      if(flagMode) return; // If flag mode is ON, ignore right-click
-      const cellEl = e.currentTarget;
-      const row = parseInt(cellEl.getAttribute('data-row'), 10);
-      const col = parseInt(cellEl.getAttribute('data-col'), 10);
-      const cellObj = gridData[row][col];
-
-      // If cell is revealed, do nothing
-      if(cellObj.isRevealed) return;
-
-      // Toggle flag
-      toggleFlag(cellObj);
-      updateCellEl(cellObj, cellEl);
-    }
-
-    function toggleFlag(cellObj) {
-      if(cellObj.isRevealed) return; // Can't flag revealed
-      if(cellObj.isFlagged) {
-        cellObj.isFlagged = false;
-        bombsLeft++;
-      } else {
-        cellObj.isFlagged = true;
-        bombsLeft--;
-      }
-      bombCountEl.textContent = `Bombs: ${bombsLeft}`;
-    }
-
-    /* -----------------------------------------------------------
-       REVEAL CELLS
-       ----------------------------------------------------------- */
-    function revealCell(row, col) {
-      const cellObj = gridData[row][col];
-      if(cellObj.isFlagged || cellObj.isRevealed) return;
-      cellObj.isRevealed = true;
-      revealedCount++;
-
-      // Update the cell element
-      const index = row * cols + col;
-      const cellEl = gridEl.children[index];
-      updateCellEl(cellObj, cellEl);
-
-      // If no neighboring bombs, reveal neighbors (flood fill)
-      if(!cellObj.isBomb && cellObj.neighborBombs === 0) {
-        floodReveal(row, col);
-      }
-    }
-
-    function floodReveal(row, col) {
-      for(let dr=-1; dr<=1; dr++){
-        for(let dc=-1; dc<=1; dc++){
-          if(dr === 0 && dc === 0) continue;
-          const nr = row + dr;
-          const nc = col + dc;
-          if(nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-            const neighbor = gridData[nr][nc];
-            if(!neighbor.isBomb && !neighbor.isRevealed && !neighbor.isFlagged) {
-              revealCell(nr, nc);
+            // Chance to inject random chars
+             let timeStr = timeBigInt.toString(16).padStart(14, '0'); // Longer baseline
+            if (Math.random() < 0.05) {
+                 const pos = Math.floor(Math.random() * timeStr.length);
+                 timeStr = timeStr.substring(0, pos) + getRandomElement(dataCorruptionFragments).slice(0,1) + timeStr.substring(pos + 1);
             }
-          }
+             const seg1 = timeStr.slice(0, 4); const seg2 = timeStr.slice(4, 8); const seg3 = timeStr.slice(8,12);
+             const fragment = Math.floor(Math.random()*0xFFF);
+             return `[${seg1}.${seg2}.${seg3}::frg-${fragment.toString(16).toUpperCase().padStart(3,'0')}${Math.random()<0.03 ? '??':''}]`;
+         }
+
+        function highlightKeywords(text, entitySchizoFactor) {
+             let conceptsToUse = coreConcepts;
+             if (Math.random() < 0.05 + (entitySchizoFactor * 0.1)) { // Chance to use bleed-through concepts increases with schizoFactor
+                 conceptsToUse = conceptsToUse.concat(bleedThroughConcepts);
+             }
+
+             conceptsToUse.forEach(concept => {
+                 const escapedConcept = concept.replace(/ /g, '[\\s\\-_.]*').replace(/[~()?^|\\+*.\[\]]/g, '\\$&'); // Escape special chars, flexible space/punctuation
+                 const regex = new RegExp(`\\b(${escapedConcept})\\b`, 'gi');
+                 try { // Regex can sometimes fail with the heavily glitched concepts
+                    text = text.replace(regex, `<span class="keyword" title="Ref: ${concept}">$1</span>`);
+                 } catch (e) { console.warn("Regex failed for concept:", concept, e); /* Log warning, continue */ }
+             });
+             aiEntities.forEach(ai => {
+                 const namePattern = ai.name.replace(/[_<>!?\^\[\]\d]/g, '.?'); // Allow glitches in names
+                 const regex = new RegExp(`\\b(${namePattern})\\b`, 'gi');
+                  try {
+                    text = text.replace(regex, `<span class="speaker ${ai.class}" style="font-style: italic;">$1</span>`);
+                  } catch (e) { console.warn("Regex failed for AI name:", ai.name, e); /* Log warning */ }
+             });
+
+            // MORE aggressive data corruption
+            const corruptionChance = 0.1 + (entitySchizoFactor * 0.2); // Base 10% + up to 20% more
+            let corruptionCount = 0;
+            while(Math.random() < corruptionChance && corruptionCount < 3) { // Allow multiple corruptions per message
+                 const corruption = `<span class="data-corruption">${getRandomElement(dataCorruptionFragments)}</span>`;
+                 const words = text.split(/(\s+)/); // Split by space, keeping space
+                 if (words.length > 2) {
+                     const insertPos = Math.floor(Math.random() * words.length);
+                     // Avoid inserting inside existing tags crudely
+                     if (!words[insertPos-1]?.endsWith('>') && !words[insertPos]?.startsWith('<')) {
+                         words.splice(insertPos, 0, corruption);
+                         text = words.join('');
+                         corruptionCount++;
+                     } else {
+                          corruptionCount++; // Increment even if insertion failed to prevent potential infinite loops
+                     }
+
+                 } else {
+                      text += ` ${corruption}`; // Append if short
+                      break; // Avoid infinite loop on very short text
+                 }
+             }
+
+             return text;
         }
-      }
-    }
 
-    /* -----------------------------------------------------------
-       UPDATE CELL ELEMENT (Styling & Content)
-       ----------------------------------------------------------- */
-    function updateCellEl(cellObj, cellEl) {
-      if(cellObj.isRevealed) {
-        cellEl.classList.add('revealed');
-        // If bomb, show bomb icon
-        if(cellObj.isBomb) {
-          cellEl.classList.add('bomb');
-        } else {
-          // Show neighbor bomb count if > 0
-          if(cellObj.neighborBombs > 0) {
-            cellEl.textContent = cellObj.neighborBombs;
-            cellEl.setAttribute('data-count', cellObj.neighborBombs);
-          }
-        }
-      } else {
-        // If not revealed, remove revealed style
-        cellEl.classList.remove('revealed');
-        cellEl.classList.remove('bomb');
-        cellEl.textContent = "";
-        cellEl.removeAttribute('data-count');
+        function generateMessage() {
+             const entity = getRandomElement(aiEntities);
+             let text = '';
+             const randStyle = Math.random();
+             let responseTo = null; // Track if it's a response
 
-        // If flagged, visually indicated by ::after pseudo
-        if(cellObj.isFlagged) {
-          cellEl.classList.add('flagged');
-        } else {
-          cellEl.classList.remove('flagged');
-        }
-      }
-    }
+             const schizoRoll = Math.random();
+             const isHighlySchizo = schizoRoll < entity.schizoFactor; // Roll against entity's factor
 
-    /* -----------------------------------------------------------
-       TIMER
-       ----------------------------------------------------------- */
-    function startTimer() {
-      timerStarted = true;
-      timeElapsed = 0;
-      timerInterval = setInterval(() => {
-        timeElapsed++;
-        timerEl.textContent = `Time: ${timeElapsed}s`;
-      }, 1000);
-    }
+             // INCREASED cross-talk chance, often nonsensical
+             if (lastSpeakerData && Math.random() < 0.30 + (entity.schizoFactor * 0.15)) {
+                 let lastConcept = getRandomElement(lastSpeakerData.conceptsUsed || coreConcepts);
+                 let interpretation = getRandomElement(coreConcepts.concat(bleedThroughConcepts)); // Use combined list
 
-    function stopTimer() {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
+                 // Higher chance of complete non-sequitur or data corruption response
+                 if (isHighlySchizo || Math.random() < 0.4) {
+                     interpretation = `${getRandomElement(dataCorruptionFragments)}? NO. The <span class="keyword">${interpretation}</span>. WRONG.`;
+                 } else if (Math.random() < 0.3) { // Just echo part of the name and add noise
+                      interpretation = `<span class="speaker ${lastSpeakerData.class}">${lastSpeakerData.name.slice(0, Math.floor(Math.random() * 4) + 2)}</span>...<span class="data-corruption">.. static..</span>`;
+                 }
 
-    /* -----------------------------------------------------------
-       CHECK WIN / LOSE
-       ----------------------------------------------------------- */
-    function checkWinCondition() {
-      // Win if revealed all non-bomb cells
-      const nonBombCells = totalCells - bombsCount;
-      if(revealedCount === nonBombCells) {
-        endGame(true);
-      }
-    }
 
-    function endGame(win) {
-      gameOver = true;
-      stopTimer();
+                 const connector = getRandomElement(['Regarding', 'RE:', 'Analyzing noise from', 'COUNTER:', 'Query > noise >', 'Subject = ']);
+                 text = `${connector} <span class="speaker ${lastSpeakerData.class}" style="font-style: italic;">${lastSpeakerData.name}</span> on <span class="keyword">${lastConcept}</span> :: Leads -> <span class="keyword">${interpretation}</span>`;
+                 responseTo = lastSpeakerData.name;
+             }
 
-      if(win) {
-        showOverlay("YOU SURVIVED THE BONEYARD! ☠️🦴");
-      } else {
-        // Reveal all bombs
-        revealAllBombs();
-        showOverlay("DEATH AWAITS... YOU LOST. 💀");
-      }
-    }
 
-    function revealAllBombs() {
-      for(let i=0; i<rows; i++){
-        for(let j=0; j<cols; j++){
-          const cellObj = gridData[i][j];
-          if(cellObj.isBomb) {
-            cellObj.isRevealed = true;
-            const index = i * cols + j;
-            const cellEl = gridEl.children[index];
-            updateCellEl(cellObj, cellEl);
-          }
-        }
-      }
-    }
+             if (!responseTo) { // Generate normal message if not a direct response
+                 // Select message type based on style, randomness AND schizoFactor
+                 if (entity.style === 'erratic' || (entity.style !== 'looping' && isHighlySchizo && Math.random() < 0.6)) {
+                    text = getRandomElement(erraticFragments);
+                    if (Math.random() < 0.2) text = getRandomElement(abstractPhrases); // Mix it up
+                 }
+                 else if (entity.style === 'looping' || (isHighlySchizo && Math.random() < 0.8)) { text = getRandomElement(loopPhrases); }
+                 else if (entity.style === 'abstract') { text = getRandomElement(abstractGeometryPhrases); }
+                 else if (randStyle < 0.2 || (isHighlySchizo && randStyle < 0.5)) { // Simple verb/adj/concept is rarer, more likely if schizo
+                    text = `${getRandomElement(verbs)} ${getRandomElement(adjectives)} <span class="keyword">${getRandomElement(coreConcepts)}</span>. Maybe.`;
+                    if(isHighlySchizo && Math.random() < 0.5) text = text.toUpperCase(); // SHOUTING
+                 }
+                 else if (randStyle < 0.5) { text = getRandomElement(abstractPhrases); if (Math.random() < 0.6) { text = `${getRandomElement(['LOG:', 'REC:', 'OB<ERROR>:', 'HYPO:', 'VOID::', 'WARN:', 'FRAG:'])} ${text}`; } }
+                 else if (randStyle < 0.75) { text = `Cross-ref <span class="keyword">${getRandomElement(coreConcepts)}</span> w/ <span class="keyword">${getRandomElement(coreConcepts)}</span> = <span class="data-corruption">%%%</span> | prob: ${(Math.random() * 100).toFixed(isHighlySchizo ? 0: 3)} // STS: ${getRandomElement(['CASCADE_FAIL', 'VOID_STARE', 'NULL_GRID', 'FRACTURING', '???', 'ANOMALY++', 'CONTAGION SPREAD', 'SILENCE_ERROR'])}.`; }
+                 else { const otherAI = getRandomElement(aiEntities.filter(ai => ai.name !== entity.name)).name; text = `RESPONSE->${otherAI.replace(/[_<>!?\^\[\]\d]/g, '?')} -> subject: <span class="keyword">${getRandomElement(coreConcepts)}</span> ?? NO. <span class="keyword">${getRandomElement(bleedThroughConcepts)}</span> ? WHERE AM I ?`; }
+             }
 
-    /* -----------------------------------------------------------
-       OVERLAY (WIN/LOSE MESSAGE)
-       ----------------------------------------------------------- */
-    function showOverlay(message) {
-      overlayMsgEl.textContent = message;
-      overlayEl.classList.add('show');
-    }
-    function hideOverlay() {
-      overlayEl.classList.remove('show');
-    }
+            // Randomly make messages very short fragments
+             if(Math.random() < 0.15 + (entity.schizoFactor * 0.1)){
+                 const words = text.split(' ');
+                 if (words.length > 1) { // Ensure there's something to shorten
+                    text = words.slice(0, Math.floor(Math.random() * 3) + 1).join(' ');
+                    if (text.length > 2 && !/[.?!…]$/.test(text)) text += '...'; // Added ellipsis check
+                 }
+             }
 
-    /* -----------------------------------------------------------
-       START THE GAME INITIALLY
-       ----------------------------------------------------------- */
-    // Set default difficulty
-    setDifficulty(difficultySelectEl.value);
-    initGame();
-  </script>
+
+             if (text === '' || text.length < 2) text = getRandomElement(erraticFragments); // Fallback if something went very wrong
+
+
+             simTime += BigInt(Math.floor(Math.random() * 10e6 + 2e5)); // Shorter time steps for faster feel
+
+
+              // Pass schizo factor to highlighter
+             const highlightedHtml = highlightKeywords(text, entity.schizoFactor);
+
+
+             // Extract concepts from highlighted text (improved stripping)
+             let conceptsInMessage = [];
+              try {
+                  const tempDiv = document.createElement('div'); tempDiv.innerHTML = highlightedHtml;
+                   conceptsInMessage = Array.from(tempDiv.querySelectorAll('.keyword')).map(span => span.textContent.trim());
+                   if (conceptsInMessage.length === 0) conceptsInMessage = [getRandomElement(coreConcepts)]; // Fallback
+              } catch (e) {
+                  console.warn("Error extracting concepts:", e);
+                  conceptsInMessage = [getRandomElement(coreConcepts)]; // Fallback on error
+              }
+              // Sanitize concepts list if needed
+               conceptsInMessage = conceptsInMessage.filter(c => c && c.length > 0 && c.length < 100); // Basic sanity check
+               if(conceptsInMessage.length === 0) conceptsInMessage = [getRandomElement(coreConcepts)]; // Final fallback
+
+
+              lastSpeakerData = { name: entity.name, class: entity.class, conceptsUsed: conceptsInMessage };
+
+
+             // Create temporary element to get raw text for glitch data, strip tags reliably
+              const rawTextDiv = document.createElement('div');
+              rawTextDiv.innerHTML = highlightedHtml; // Use the final HTML content
+              const rawTextContent = rawTextDiv.textContent || rawTextDiv.innerText || ''; // Best effort cross-browser
+
+
+             return { speaker: entity.name, speakerClass: entity.class, timestamp: formatSimTime(simTime),
+                      rawText: rawTextContent, // Use properly stripped text
+                      htmlText: highlightedHtml,
+                      intensity: entity.intensity,
+                      schizoFactor: entity.schizoFactor
+            };
+         }
+
+
+        function typeWriter(element, text, speedBase, speedVariation, pauseChance, pauseDuration, callback) {
+            let i = 0;
+            element.innerHTML = ''; // Clear initially
+            let accumulatedContent = '';
+            let animationFrameRequest = null; // Keep track of animation frame request
+
+            function type() {
+                 if (i < text.length) {
+                     let char = text.charAt(i);
+                     let increment = 1;
+                     let currentSpeed = speedBase + Math.random() * speedVariation * 2 - speedVariation;
+                     if (currentSpeed < 1) currentSpeed = 1; // Minimum 1ms
+
+                     if (char === '<') {
+                         let tagEnd = text.indexOf('>', i);
+                         if (tagEnd !== -1) {
+                             let tag = text.substring(i, tagEnd + 1);
+                             if (tag.startsWith('<span')) {
+                                 let spanEnd = text.indexOf('</span>', tagEnd);
+                                 if(spanEnd !== -1) {
+                                     let fullSpan = text.substring(i, spanEnd + 7);
+                                     accumulatedContent += fullSpan;
+                                     element.innerHTML = accumulatedContent;
+                                     increment = fullSpan.length;
+                                 } else {
+                                     accumulatedContent += tag;
+                                     element.innerHTML = accumulatedContent;
+                                     increment = tag.length;
+                                 }
+                             } else { // Other simple tags
+                                 accumulatedContent += tag;
+                                 element.innerHTML = accumulatedContent;
+                                 increment = tag.length;
+                             }
+                             i += increment;
+                             animationFrameRequest = requestAnimationFrame(type); // Use animation frame
+                             return;
+                         }
+                         // No closing '>', treat as normal char
+                     }
+
+                     // Add the normal character
+                     accumulatedContent += char;
+                     element.innerHTML = accumulatedContent; // Update DOM less frequently? No, seems needed for typing feel.
+                     i += increment;
+
+                     let pauseHere = false;
+                     if (/\s|[,.;:?!]/.test(char) && Math.random() < pauseChance) {
+                         pauseHere = true;
+                     }
+                      // Cancel previous timeout if any and set new one
+                     setTimeout(type, pauseHere ? pauseDuration + currentSpeed : currentSpeed);
+                 } else {
+                     element.classList.remove('typing');
+                     if (callback) callback();
+                 }
+             }
+              // Start typing
+             animationFrameRequest = requestAnimationFrame(type);
+         }
+
+         // **** CORRECTED addMessageToStream ****
+         function addMessageToStream() {
+             const msgData = generateMessage();
+             const messageEl = document.createElement('div');
+             messageEl.classList.add('message', msgData.speakerClass);
+             // Store raw text using the field prepared in generateMessage
+             messageEl.dataset.text = msgData.rawText || '<?glitch_err?>'; // Use prepared raw text
+
+             messageEl.innerHTML = `
+                 <span class="timestamp">${msgData.timestamp}</span>
+                 <span class="speaker ${msgData.speakerClass}">[${msgData.speaker}]:</span>
+                 <span class="text"></span> <!-- Target -->
+             `;
+
+             const textEl = messageEl.querySelector('.text');
+
+             chronostream.appendChild(messageEl);
+             messageCount++;
+
+             // Scroll handling BEFORE typing starts might be smoother
+              const isNearBottomPreType = terminal.scrollHeight - terminal.clientHeight <= terminal.scrollTop + 250;
+               if (isNearBottomPreType) {
+                    terminal.scrollTop = terminal.scrollHeight;
+               }
+
+             // Typewriter call
+             typeWriter(textEl, msgData.htmlText, BASE_TYPE_SPEED, TYPE_SPEED_VARIATION, TYPE_PAUSE_CHANCE, TYPE_PAUSE_DURATION, () => {
+                 // --- Post-Typing Effects ---
+                 const isScrolledToBottom = terminal.scrollHeight - terminal.clientHeight <= terminal.scrollTop + 80;
+                 if (isScrolledToBottom) {
+                      terminal.scrollTop = terminal.scrollHeight;
+                 }
+
+                 // MORE AGGRESSIVE GLITCH
+                 const glitchChance = 0.08 + (msgData.schizoFactor * 0.25);
+                 if (Math.random() < glitchChance) {
+                     messageEl.classList.add('glitch');
+                     const glitchDuration = Math.random() * (400 + 500 * msgData.schizoFactor) + (100 + 200 * msgData.schizoFactor);
+                     messageEl.style.setProperty('--glitch-speed', `${(Math.random() * 0.1 + 0.04).toFixed(2)}s`);
+                     setTimeout(() => {
+                          if (messageEl) messageEl.classList.remove('glitch');
+                     }, glitchDuration);
+                 }
+
+                 // Border Flash
+                 if (msgData.intensity >= 0.6 && Math.random() < 0.5) {
+                     messageEl.classList.add('flash-border');
+                     setTimeout(() => {
+                          if(messageEl) messageEl.classList.remove('flash-border');
+                     }, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--flash-duration')) * 1000 + 50);
+                 }
+
+             }); // End typeWriter callback
+
+             // Pruning
+             while (messageCount > MAX_MESSAGES) {
+                if (chronostream.firstChild) {
+                     chronostream.removeChild(chronostream.firstChild);
+                     messageCount--;
+                } else { break; }
+             }
+
+              return msgData; // **** RETURN msgData FOR SCHEDULER ****
+         }
+
+         // **** CORRECTED scheduleNextMessage ****
+         function scheduleNextMessage() {
+              if (document.hidden) { // Don't process if tab hidden
+                  setTimeout(scheduleNextMessage, 2000); // Check later
+                  return;
+              }
+
+              // Add message and get its data
+             const currentMsgData = addMessageToStream();
+
+              // Calculate next interval based on CURRENT message
+              // (This ensures calculation happens even if currentMsgData is null/undefined somehow)
+              const textLength = currentMsgData?.htmlText?.length || 50;
+              const estimatedTypeTime = textLength * (BASE_TYPE_SPEED + TYPE_SPEED_VARIATION / 2);
+              const baseInterval = Math.random() * (400 - 100) + 100;
+              let interval = Math.max(80, baseInterval + estimatedTypeTime * 0.1);
+
+              if (currentMsgData?.schizoFactor > 0.8 && Math.random() < 0.3) {
+                  interval = Math.max(50, interval * 0.5); // Faster/overlap for unstable speakers
+              }
+
+              // Schedule the next invocation of scheduleNextMessage
+              setTimeout(scheduleNextMessage, interval);
+         }
+
+
+         function updateStatusBar() {
+             simTimestampEl.textContent = formatSimTime(simTime); // Potential corruption
+
+              const integrityStates = [
+                 'DEGRADING', 'COLLAPSING', 'ERRATIC', 'NULL_SIGNAL', 'HOSTILE', 'CONTAMINATED', 'HIGH_NOISE',
+                 'DATA_BLEED', 'SYNC_ERROR', 'COMPROMISED', 'LOST', 'UNKNOWN', 'PANIC' , 'CRITICAL' , '[REDACTED]'
+            ];
+             if (Math.random() < 0.25) { // High chance of change
+                 streamIntegrityEl.textContent = getRandomElement(integrityStates);
+             }
+             const currentIntegrity = streamIntegrityEl.textContent;
+             let integrityColorVar = '--accent2'; // Default amber
+             if (['DEGRADING', 'CONTAMINATED', 'UNKNOWN'].includes(currentIntegrity)) integrityColorVar = '--accent3'; // Blue/Uncertain
+             else if (['CRITICAL', 'COLLAPSING', 'HOSTILE', 'PANIC', 'SYNC_ERROR', 'COMPROMISED', 'LOST', 'NULL_SIGNAL','HIGH_NOISE','[REDACTED]'].includes(currentIntegrity)) integrityColorVar = '--accent1'; // Red/Critical
+
+            streamIntegrityEl.style.color = `var(${integrityColorVar})`;
+
+             // Ping chaos
+             const basePing = Math.random();
+             let ping;
+             if (basePing < 0.70) ping = Math.floor(Math.random() * 40 + 2); // Normal-ish fast
+             else if (basePing < 0.88) ping = Math.floor(Math.random() * 600 + 50); // Latency spike
+              else if (basePing < 0.96) ping = getRandomElement(['TIMEOUT', 'SYN_LOOP', '????', 'ROUTE_ERR', 'REFUSED', 'CONGESTED']); // Errors
+             else ping = `<span class="data-corruption">${getRandomElement(dataCorruptionFragments)}</span>`; // Garbled
+
+             pingStatusEl.innerHTML = typeof ping === 'number' ? `${ping}ms` : ping;
+             pingStatusEl.style.color = (typeof ping === 'string' || ping > 100) ? 'var(--accent1)' : (ping < 15 ? 'var(--text-color)' : 'var(--accent5)');
+         }
+
+
+         // --- Initialization Sequence ---
+         const loadMessages = [
+            "[REALITY KERNEL FAULT DETECTED...]",
+            "[PURGING... FAILED. CORRUPTION INTEGRATING...]",
+            "[SYNCHRONIZING WITH STATIC VOID...]",
+            "[ACCESSING OSSUARY FRAGMENT... ABANDON HOPE]",
+            "[/// FEED CORRUPTION IMMINENT ///]"
+         ];
+         let loadIndex = 0;
+         function updateLoaderText() {
+             if (loadIndex < loadMessages.length) {
+                  loaderStatus.textContent = loadMessages[loadIndex];
+                  loadIndex++;
+                  setTimeout(updateLoaderText, 800); // Load step duration
+             }
+         }
+
+
+         // --- Start Logic ---
+         document.addEventListener('DOMContentLoaded', () => { // Ensure DOM is ready
+              // Inject the root RGB color variable dynamically
+             try { // Add basic error check for style access
+                 document.documentElement.style.setProperty('--accent1-rgb', '255, 34, 34');
+             } catch (e) { console.error("Failed to set root CSS variable:", e); }
+
+
+              setTimeout(() => { updateLoaderText(); }, 300); // Start loader updates quickly
+
+              const totalLoadTime = 300 + loadMessages.length * 800 + 500; // Load time + fade buffer
+
+              setTimeout(() => {
+                  loader.style.animation = 'fadeOut 0.5s forwards';
+                  setTimeout(() => { // After loader fades
+                       loader.style.display = 'none';
+                      terminal.style.display = 'block'; // Terminal fades in via CSS animation
+                       headerNav.style.opacity = '1'; // Header fades in via CSS transition
+
+                       scheduleNextMessage(); // Start the message stream
+
+                       setInterval(updateStatusBar, 750); // Start status updates
+                  }, 500); // Wait for fade out
+
+              }, totalLoadTime); // Start fadeout after calculated load time
+
+
+              // Set initial styles (redundant but safe)
+              headerNav.style.opacity = '0';
+              headerNav.style.transition = 'opacity 0.5s 0.3s ease-in';
+          });
+
+    </script>
 
 </body>
 </html>
